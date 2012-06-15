@@ -1,0 +1,4 @@
+<factorypath>
+    <factorypathentry kind="PLUGIN" id="org.eclipse.jst.ws.annotations.core" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="EXTJAR" id="/Users/c58/.m2/repository/com/gwtplatform/gwtp-processors/0.6/gwtp-processors-0.6.jar" enabled="true" runInBatchMode="false"/>
+</factorypath>

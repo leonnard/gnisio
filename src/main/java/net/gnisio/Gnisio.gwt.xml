@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+  	<inherits name="com.google.gwt.http.HTTP" />
+  	<inherits name="com.google.gwt.user.RemoteServiceObfuscateTypeNames"/>
+
+    <generate-with class="net.gnisio.rebind.ServiceInterfaceProxyGenerator" >
+        <any>
+            <when-type-assignable class="net.gnisio.shared.SocketIOService" />
+        </any>
+    </generate-with>
+
+    <source path="client" />
+    <source path="shared" />
+</module>
