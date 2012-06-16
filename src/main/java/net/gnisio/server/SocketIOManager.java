@@ -12,6 +12,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import net.gnisio.server.exceptions.ClientConnectionNotExists;
+import net.gnisio.server.transports.HTMLTransport;
 import net.gnisio.server.transports.JSONPTransport;
 import net.gnisio.server.transports.Transport;
 import net.gnisio.server.transports.WebSocketTransport;
@@ -44,6 +45,7 @@ public class SocketIOManager {
 	// Initialize transports
 	static {
 		transports.put("xhr-polling", new XHRTransport());
+		transports.put("htmlfile", new HTMLTransport());
 		transports.put("jsonp-polling", new JSONPTransport());
 		transports.put("websocket", new WebSocketTransport());
 	}
@@ -55,7 +57,7 @@ public class SocketIOManager {
 		public int heartbeat_interval = 25;
 		public boolean flash_policy_server = true;
 		public int flash_policy_port = 10843;
-		public String transports = "websocket,xhr-polling,jsonp-polling";
+		public String transports = "websocket,xhr-polling,jsonp-polling,htmlfile";
 		public String socketio_namespace = "io";
 
 		{

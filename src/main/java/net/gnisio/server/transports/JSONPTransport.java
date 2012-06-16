@@ -30,6 +30,13 @@ public class JSONPTransport extends XHRTransport {
 
 	@Override
 	protected String decodePostData(String data) {
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		QueryStringDecoder decoder = new QueryStringDecoder(data,
 				CharsetUtil.UTF_8, false, 2);
 		List<String> decoded = decoder.getParameters().get("d");

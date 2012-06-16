@@ -54,11 +54,11 @@ public class XHRTransport extends AbstractTransport {
 	}
 
 	/**
-	 * POST request in XHT transport is only for client to server data pipe, not
+	 * POST request in XHR transport is only for client to server data pipe, not
 	 * vise-versa. In this fact, this method process each frame and send it by
 	 * ClientConnection.
 	 * 
-	 * In XNRClient method sendFrames doing two different things: 1. Send data
+	 * In XHRClient method sendFrames doing two different things: 1. Send data
 	 * to client if connection alive 2. Put data to buffer otherwise
 	 * 
 	 * @param clientsStore
@@ -84,10 +84,10 @@ public class XHRTransport extends AbstractTransport {
 
 			// Set in remote service
 			remoteService.setClientConnection(client);
-			
+
 			// Decode received socket.io payload
 			List<SocketIOFrame> receivedFrames = SocketIOFrame
-					.decodePayload(decodePostData(req.getContent().toString(
+					.decodePayload( decodePostData(req.getContent().toString(
 							Charset.forName("UTF-8"))));
 
 			// Process each frame and add to frames list
@@ -109,14 +109,13 @@ public class XHRTransport extends AbstractTransport {
 			SocketIOManager.sendHttpResponse(ctx, req, resp);
 
 		} finally {
-			LOG.debug("I AM THERE");
 			// Unset client from remote service
 			remoteService.clearClientConnection();
 		}
 	}
 
 	/**
-	 * Needed for decoding form POST data in JSONP and HTML transport
+	 * Needed for decoding form POST data in JSONP transport
 	 * 
 	 * @param data
 	 * @return
@@ -159,6 +158,9 @@ public class XHRTransport extends AbstractTransport {
 					remoteService);
 			remoteService.setClientConnection(client);
 
+			// Prepare connection (needed for htmlfile transport)
+			doPrepareConnection(ctx, client, resp);
+
 			List<SocketIOFrame> buff = null;
 			synchronized (client) {
 				// If client disconnected -> send connected frame and heartbeat
@@ -189,6 +191,17 @@ public class XHRTransport extends AbstractTransport {
 			// Unset client from remote service
 			remoteService.clearClientConnection();
 		}
+	}
+
+	/**
+	 * This method invoked after getting client in GET processing. No frames had
+	 * sent before this invokation
+	 * 
+	 * @param ctx
+	 * @param client
+	 */
+	protected void doPrepareConnection(ChannelHandlerContext ctx, XHRClient client, HttpResponse resp) {
+		// do nothing...
 	}
 
 	@Override
