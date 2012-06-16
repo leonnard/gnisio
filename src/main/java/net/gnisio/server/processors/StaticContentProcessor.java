@@ -37,6 +37,7 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.stream.ChunkedFile;
 import org.jboss.netty.util.CharsetUtil;
+import org.mortbay.log.Log;
 
 /**
  * Static content processor with NOT_MODIFIED response future. Also it disable
@@ -84,7 +85,7 @@ public class StaticContentProcessor extends RequestProcessor {
 
 		if (file.isHidden() || !file.exists())
 			sendError(resp, NOT_FOUND);
-
+		
 		// Disable caching
 		if (path.contains("nocache")) {
 			setNoCacheHeaders(resp);
@@ -121,6 +122,7 @@ public class StaticContentProcessor extends RequestProcessor {
 		}
 		long fileLength = raf.length();
 
+		// Set other headers 
 		setContentLength(resp, fileLength);
 		setContentTypeHeader(resp, file);
 
@@ -283,7 +285,7 @@ public class StaticContentProcessor extends RequestProcessor {
 	private static void setContentTypeHeader(HttpResponse response, File file) {
 		MimetypesFileTypeMap mimeTypesMap = new MimetypesFileTypeMap();
 		response.setHeader(HttpHeaders.Names.CONTENT_TYPE,
-				mimeTypesMap.getContentType(file.getPath()));
+				mimeTypesMap.getContentType(file.getPath())+"; charset=UTF-8"  );
 	}
 
 }

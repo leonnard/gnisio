@@ -1,6 +1,7 @@
 package net.gnisio.server.transports;
 
 import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.handler.codec.http.HttpChunk;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
@@ -41,7 +42,7 @@ public interface Transport {
 	 * @throws ClientConnectionMismatch 
 	 * @throws ClientConnectionNotExists 
 	 */
-	void processWebSocketFrame(ClientsStorage clientsStorage, WebSocketClient client, WebSocketFrame msg,
+	void processWebSocketFrame(ClientsStorage clientsStorage, ClientConnection currentClient, WebSocketFrame msg,
 			ChannelHandlerContext ctx, AbstractRemoteService remoteService) throws ClientConnectionNotExists, ClientConnectionMismatch;
 
 

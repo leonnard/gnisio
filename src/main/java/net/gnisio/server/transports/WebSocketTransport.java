@@ -5,9 +5,9 @@ import java.util.List;
 import net.gnisio.server.AbstractRemoteService;
 import net.gnisio.server.SocketIOFrame;
 import net.gnisio.server.clients.ClientConnection;
+import net.gnisio.server.clients.ClientConnection.State;
 import net.gnisio.server.clients.ClientsStorage;
 import net.gnisio.server.clients.WebSocketClient;
-import net.gnisio.server.clients.ClientConnection.State;
 import net.gnisio.server.exceptions.ClientConnectionMismatch;
 import net.gnisio.server.exceptions.ClientConnectionNotExists;
 
@@ -45,6 +45,7 @@ public class WebSocketTransport extends AbstractTransport {
 				// Try to get client connection
 				WebSocketClient client = getClientConnection(clientId,
 						clientsStore, remoteService, WebSocketClient.class);
+
 				remoteService.setClientConnection(client);
 
 				// Handshaker
@@ -60,6 +61,8 @@ public class WebSocketTransport extends AbstractTransport {
 							WebSocketServerHandshaker.HANDSHAKE_LISTENER);
 				}
 
+				// Set connection channel and handshaker in client connection
+				// object
 				List<SocketIOFrame> buff = null;
 				synchronized (client) {
 					// Set handshaker in client
@@ -81,7 +84,7 @@ public class WebSocketTransport extends AbstractTransport {
 				client.stopHeartbeatTask();
 				client.sendFrame(SocketIOFrame.makeConnect());
 				client.sendFrame(SocketIOFrame.makeHeartbeat());
-				
+
 			} finally {
 				remoteService.clearClientConnection();
 			}
@@ -92,7 +95,7 @@ public class WebSocketTransport extends AbstractTransport {
 
 	@Override
 	public void processWebSocketFrame(ClientsStorage clientsStorage,
-			WebSocketClient client, WebSocketFrame frame,
+			ClientConnection client, WebSocketFrame frame,
 			ChannelHandlerContext ctx, AbstractRemoteService remoteService)
 			throws ClientConnectionNotExists, ClientConnectionMismatch {
 
@@ -103,8 +106,8 @@ public class WebSocketTransport extends AbstractTransport {
 			// Check for closing frame
 			if (frame instanceof CloseWebSocketFrame) {
 				client.setState(State.DISCONNECTED);
-				client.getHandshaker().close(ctx.getChannel(),
-						(CloseWebSocketFrame) frame);
+				((WebSocketClient) client).getHandshaker().close(
+						ctx.getChannel(), (CloseWebSocketFrame) frame);
 				return;
 			} else if (frame instanceof PingWebSocketFrame) {
 				ctx.getChannel().write(
@@ -162,4 +165,5 @@ public class WebSocketTransport extends AbstractTransport {
 			remoteService.clearClientConnection();
 		}
 	}
+
 }

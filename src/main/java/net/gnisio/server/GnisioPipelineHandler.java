@@ -27,6 +27,7 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.handler.codec.frame.TooLongFrameException;
 import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
+import org.jboss.netty.handler.codec.http.HttpChunk;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
@@ -61,7 +62,7 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 	private Transport activeTransport = null;
 	private String currentSessionId = null;
 	private String currentClientId = null;
-	private WebSocketClient wsClient = null;
+	private ClientConnection currentClient = null;
 
 	public GnisioPipelineHandler(SessionsStorage sessionsStore,
 			ClientsStorage clientsStore,
@@ -78,9 +79,9 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 			ChannelStateEvent e) throws Exception {
 		if (activeTransport != null
 				&& activeTransport instanceof WebSocketTransport) {
-			setWebSocketClient(ctx);
+			setCurrentClient(ctx);
 			((WebSocketTransport) activeTransport).handleDisconnect(
-					clientsStore, wsClient, remoteService);
+					clientsStore, currentClient, remoteService);
 		}
 	}
 
@@ -89,20 +90,20 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 			throws Exception {
 		Object msg = e.getMessage();
 
-		// Process HTTP request
+		// Process HTTP request (for XHR transports)
 		if (msg instanceof HttpRequest) {
 			handleHttpRequest(ctx, (HttpRequest) msg, e);
 		}
 
-		// Process WebSocket frame
+		// Process WebSocket frame (for websocket transport)
 		else if (msg instanceof WebSocketFrame) {
 			LOG.debug("Received WebSocket frame: "
 					+ ((WebSocketFrame) msg).getBinaryData().toString(
 							Charset.forName("UTF-8")));
 
 			if (activeTransport != null){
-				setWebSocketClient(ctx);
-				activeTransport.processWebSocketFrame(clientsStore, wsClient,
+				setCurrentClient(ctx);
+				activeTransport.processWebSocketFrame(clientsStore, currentClient,
 						(WebSocketFrame) msg, ctx, remoteService);
 			}
 			else {
@@ -124,12 +125,12 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 	 * current client connection is not WSClient
 	 * @throws Exception 
 	 */
-	private void setWebSocketClient(ChannelHandlerContext ctx) throws Exception {
-		if(wsClient == null) {
+	private void setCurrentClient(ChannelHandlerContext ctx) throws Exception {
+		if(currentClient == null) {
 			ClientConnection cl = clientsStore.getClient(currentClientId);
 			
-			if(cl instanceof WebSocketClient)
-				wsClient = (WebSocketClient)cl;
+			if( !(cl instanceof ConnectingClient) )
+				currentClient = cl;
 			else {
 				LOG.error("Current client must be WebSocket client but it dosn't. WTF?");
 				ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);

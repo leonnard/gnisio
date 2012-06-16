@@ -124,11 +124,10 @@ public class SocketIOManager {
 			// Add keep alive header as per:
 			// http://www.w3.org/Protocols/HTTP/1.1/draft-ietf-http-v11-spec-01.html#Connection
 			res.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-
 		}
 
-		LOG.debug("Write HTTP response to client: " + res.getContent().toString(Charset.forName("UTF-8")));
-		
+		LOG.debug("Write HTTP response to client: " + res.getContent().toString( Charset.forName("UTF-8") ));
+
 		// Send data
 		ChannelFuture f = ctx.getChannel().write(res);
 

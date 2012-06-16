@@ -12,6 +12,8 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.handler.codec.http.DefaultHttpChunk;
 import org.jboss.netty.handler.codec.http.HttpChunk;
 
+import com.google.gwt.thirdparty.guava.common.base.Charsets;
+
 public class HTMLClient extends XHRClient {
 	private final static String TEMPLATE = "<script>_('%s');</script>";
 
@@ -32,7 +34,7 @@ public class HTMLClient extends XHRClient {
 		// Make http chunk
 		ChannelBuffer chunkContent = ChannelBuffers.dynamicBuffer(channel
 				.getConfig().getBufferFactory());
-		chunkContent.writeBytes(result.getBytes());
+		chunkContent.writeBytes( result.getBytes( Charsets.UTF_8 ) );
 		HttpChunk chunk = new DefaultHttpChunk(chunkContent);
 
 		LOG.debug("Write HTTP chunk by htmlfile: " + result);

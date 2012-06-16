@@ -12,21 +12,16 @@ import net.gnisio.server.SocketIOFrame;
  * uuid in clients storage. 
  * 
  * @author c58
- *
  */
 public class ConnectingClient extends AbstractClient {
 	
-
 	public ConnectingClient(String id, String sessionId,
 			ClientsStorage clientsStorage, AbstractRemoteService remoteService) {
 		super(id, sessionId, clientsStorage, remoteService);
-		// TODO Auto-generated constructor stub
 	}
 
 	@Override
 	protected void doSendFrames(List<SocketIOFrame> resultFrames) {
-		// TODO Auto-generated method stub
-		
 	}
 
 }

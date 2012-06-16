@@ -67,7 +67,7 @@ public abstract class AbstractGnisioServer {
 		createRequestProcessors(requestProcessors);
 
 		// Bind and start to accept incoming connections.
-		this.serverChannel = bootstrap.bind(new InetSocketAddress(port));
+		this.serverChannel = bootstrap.bind(new InetSocketAddress("192.168.1.4", port));
 
 		LOG.info("Server Started at port [" + port + "]");
 	}

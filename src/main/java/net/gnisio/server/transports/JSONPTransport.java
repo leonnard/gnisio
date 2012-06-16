@@ -1,22 +1,16 @@
 package net.gnisio.server.transports;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.List;
 
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.jboss.netty.handler.codec.http.HttpResponse;
-import org.jboss.netty.handler.codec.http.QueryStringDecoder;
-import org.jboss.netty.util.CharsetUtil;
-
 import net.gnisio.server.AbstractRemoteService;
-import net.gnisio.server.SocketIOFrame;
 import net.gnisio.server.clients.ClientsStorage;
 import net.gnisio.server.clients.JSONPClient;
 import net.gnisio.server.clients.XHRClient;
 import net.gnisio.server.exceptions.ClientConnectionMismatch;
 import net.gnisio.server.exceptions.ClientConnectionNotExists;
+
+import org.jboss.netty.handler.codec.http.QueryStringDecoder;
+import org.jboss.netty.util.CharsetUtil;
 
 public class JSONPTransport extends XHRTransport {
 

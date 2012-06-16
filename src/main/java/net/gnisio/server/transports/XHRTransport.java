@@ -10,21 +10,19 @@ import net.gnisio.server.SocketIOManager;
 import net.gnisio.server.clients.ClientConnection;
 import net.gnisio.server.clients.ClientConnection.State;
 import net.gnisio.server.clients.ClientsStorage;
-import net.gnisio.server.clients.WebSocketClient;
 import net.gnisio.server.clients.XHRClient;
 import net.gnisio.server.exceptions.ClientConnectionMismatch;
 import net.gnisio.server.exceptions.ClientConnectionNotExists;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.websocketx.WebSocketFrame;
-import org.jboss.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gwt.thirdparty.guava.common.base.Charsets;
 
 public class XHRTransport extends AbstractTransport {
 	protected static final Logger LOG = LoggerFactory
@@ -88,7 +86,7 @@ public class XHRTransport extends AbstractTransport {
 			// Decode received socket.io payload
 			List<SocketIOFrame> receivedFrames = SocketIOFrame
 					.decodePayload( decodePostData(req.getContent().toString(
-							Charset.forName("UTF-8"))));
+							Charsets.UTF_8)));
 
 			// Process each frame and add to frames list
 			List<SocketIOFrame> resultFrames = new ArrayList<SocketIOFrame>();
@@ -156,6 +154,7 @@ public class XHRTransport extends AbstractTransport {
 			// Try to get client connection
 			XHRClient client = doGetClientConnection(clientId, clientsStore,
 					remoteService);
+			
 			remoteService.setClientConnection(client);
 
 			// Prepare connection (needed for htmlfile transport)
@@ -211,8 +210,9 @@ public class XHRTransport extends AbstractTransport {
 
 	@Override
 	public void processWebSocketFrame(ClientsStorage clientsStorage,
-			WebSocketClient client, WebSocketFrame msg,
-			ChannelHandlerContext ctx, AbstractRemoteService remoteService) {
+			ClientConnection currentClient, WebSocketFrame msg,
+			ChannelHandlerContext ctx, AbstractRemoteService remoteService)
+			throws ClientConnectionNotExists, ClientConnectionMismatch {
 		// do nothing...
 	}
 

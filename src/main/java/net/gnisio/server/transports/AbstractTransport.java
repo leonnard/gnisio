@@ -85,6 +85,8 @@ public abstract class AbstractTransport implements Transport {
 			break;
 
 		case DISCONNECT:
+			LOG.debug("Process DISCONNECT frame");
+			
 			// Remove client from storage
 			storage.removeClient(client);
 			

@@ -94,7 +94,7 @@ public abstract class AbstractClient implements ClientConnection,
 	}
 
 	@Override
-	public List<SocketIOFrame> flushBuffer() {
+	public synchronized List<SocketIOFrame> flushBuffer() {
 		List<SocketIOFrame> buff = buffer;
 		buffer = new ArrayList<SocketIOFrame>();
 		return buff;
