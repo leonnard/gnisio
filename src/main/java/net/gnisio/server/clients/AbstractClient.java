@@ -69,6 +69,7 @@ public abstract class AbstractClient implements ClientConnection,
 		if (getState() == State.CONNECTED && ctx != null
 				&& ctx.getChannel().isConnected()) {
 			LOG.debug("Connection is alive. Send data");
+			
 			doSendFrames(resultFrames);
 		}
 		// Otherwise add to buffer
