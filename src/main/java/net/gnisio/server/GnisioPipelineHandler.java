@@ -192,7 +192,8 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 			ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
 		} catch (Exception ex) {
 			LOG.error("Some unknown exception! " + ex.getClass() + ": "
-					+ ex.getMessage() + ex.getStackTrace());
+					+ ex.getMessage());
+			ex.printStackTrace();
 			ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
 		} finally {
 			// Invoke request post processor if pre-processor not throws the

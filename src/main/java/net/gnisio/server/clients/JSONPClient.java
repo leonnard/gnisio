@@ -21,30 +21,33 @@ public class JSONPClient extends XHRClient {
 
 	@Override
 	protected void doSendFrames(List<SocketIOFrame> resultFrames) {
-		setState( State.CONNECTING );
-		
+		setState(State.CONNECTING);
+
 		// Get ID of request
 		String reqIndex = null;
-		int pos = req.getUri().lastIndexOf("&i="); // It's not good, but it's fastest :)
-		if(pos < 0)
+		int pos = req.getUri().lastIndexOf("&i="); // It's not good, but it's
+													// fastest :)
+		if (pos < 0)
 			reqIndex = "0";
-		else 
-			reqIndex = req.getUri().substring(pos+3);
-		
+		else
+			reqIndex = req.getUri().substring(pos + 3);
+
 		// Encode frames
-		String result = String.format(TEMPLATE, reqIndex, SocketIOFrame.encodePayload(resultFrames) );
-		
+		String result = String.format(TEMPLATE,
+				reqIndex, SocketIOManager.jsonStringify( SocketIOFrame.encodePayload(resultFrames)) );
+
 		// Set result in response
-		ChannelBuffer content = ChannelBuffers.copiedBuffer( result,
+		ChannelBuffer content = ChannelBuffers.copiedBuffer(result,
 				CharsetUtil.UTF_8);
 		resp.setContent(content);
-		
+
 		// Set headers
-		resp.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/javascript; charset=UTF-8");
+		resp.setHeader(HttpHeaders.Names.CONTENT_TYPE,
+				"text/javascript; charset=UTF-8");
 		resp.addHeader("X-XSS-Protection", "0");
-		
+
 		// Send response
-		LOG.debug("Send result by JSONP: "+result);
+		LOG.debug("Send result by JSONP: " + result);
 		SocketIOManager.sendHttpResponse(ctx, req, resp);
 	}
 }

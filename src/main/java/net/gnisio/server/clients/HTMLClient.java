@@ -4,6 +4,7 @@ import java.util.List;
 
 import net.gnisio.server.AbstractRemoteService;
 import net.gnisio.server.SocketIOFrame;
+import net.gnisio.server.SocketIOManager;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -22,14 +23,12 @@ public class HTMLClient extends XHRClient {
 	@Override
 	protected void doSendFrames(List<SocketIOFrame> resultFrames) {
 		// Make result message
-		String result = String.format(
-				TEMPLATE,
-				SocketIOFrame.encodePayload(resultFrames).replaceAll("\"",
-						"\\\""));
-		
+		String result = String.format(TEMPLATE,
+				 SocketIOManager.jsonStringify( SocketIOFrame.encodePayload(resultFrames)) );
+
 		// Get channel
 		Channel channel = ctx.getChannel();
-		
+
 		// Make http chunk
 		ChannelBuffer chunkContent = ChannelBuffers.dynamicBuffer(channel
 				.getConfig().getBufferFactory());
@@ -37,7 +36,7 @@ public class HTMLClient extends XHRClient {
 		HttpChunk chunk = new DefaultHttpChunk(chunkContent);
 
 		LOG.debug("Write HTTP chunk by htmlfile: " + result);
-		
+
 		// Write chunk
 		channel.write(chunk);
 	}

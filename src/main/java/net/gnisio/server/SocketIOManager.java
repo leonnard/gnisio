@@ -167,5 +167,21 @@ public class SocketIOManager {
 		return scheduledExecutorService.schedule(runnable, option.heartbeat_timeout,
 				TimeUnit.SECONDS);
 	}
-
+	
+	/**
+	 * JSON Stringify equivalent (for string)
+	 */
+	public static String jsonStringify(String str) {
+		// Escape
+		str = str.replaceAll("\"", "\\\"")
+				 .replaceAll("\\\\", "\\\\\\\\")
+				 .replaceAll("\b", "\\b")
+				 .replaceAll("\f", "\\f")
+				 .replaceAll("\n", "\\n")
+				 .replaceAll("\r", "\\r")
+				 .replaceAll("\t", "\\t");
+		
+		// To quotes
+		return str;
+	}
 }
