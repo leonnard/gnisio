@@ -27,7 +27,6 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelFutureProgressListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.DefaultFileRegion;
 import org.jboss.netty.channel.FileRegion;

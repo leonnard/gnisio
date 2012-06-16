@@ -77,6 +77,13 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	public void setClientConnection(ClientConnection conn) {
 		currentClient.set(conn);
 	}
+	
+	/**
+	 * Clear thread-local client connection. Must be paired with setClientConnection
+	 */
+	public void clearClientConnection() {
+		currentClient.remove();
+	}
 
 	/**
 	 * Return current session id

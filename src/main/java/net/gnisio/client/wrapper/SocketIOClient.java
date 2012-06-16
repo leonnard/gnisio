@@ -18,6 +18,7 @@ import net.gnisio.client.event.SIOReconnectedEvent.SIOReconnectedHandler;
 import net.gnisio.client.event.SIOReconnectingEvent;
 import net.gnisio.client.event.SIOReconnectingEvent.SIOReconnectingHandler;
 
+import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.event.shared.HandlerManager;
 import com.google.gwt.event.shared.HandlerRegistration;
@@ -141,6 +142,7 @@ public class SocketIOClient extends HandlerManager implements HasAllSIOHandlers 
 	 * @return true if sending success, or false otherwise
 	 */
 	public boolean sendMessage(String message) {
+		GWT.log(state + "|" + message);
 		if(state == ConnectionState.CONNECTED) {
 			impl.send(message);
 			return true;

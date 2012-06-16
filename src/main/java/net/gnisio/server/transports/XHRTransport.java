@@ -27,13 +27,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class XHRTransport extends AbstractTransport {
-	private static final Logger LOG = LoggerFactory.getLogger(XHRTransport.class);
+	protected static final Logger LOG = LoggerFactory
+			.getLogger(XHRTransport.class);
 
 	@Override
-	public void processRequest(ClientsStorage clientsStore, String clientId, HttpRequest req,
-			HttpResponse resp, ChannelHandlerContext ctx, 
-			AbstractRemoteService remoteService) throws ClientConnectionNotExists,
-			ClientConnectionMismatch {
+	public void processRequest(ClientsStorage clientsStore, String clientId,
+			HttpRequest req, HttpResponse resp, ChannelHandlerContext ctx,
+			AbstractRemoteService remoteService)
+			throws ClientConnectionNotExists, ClientConnectionMismatch {
 
 		// Process request-response
 		if (req.getMethod() == HttpMethod.POST)
@@ -69,36 +70,69 @@ public class XHRTransport extends AbstractTransport {
 	 * @throws ClientConnectionNotExists
 	 * @throws ClientConnectionMismatch
 	 */
-	private void processPostRequest(ClientsStorage clientsStore, String clientId,
-			HttpRequest req, HttpResponse resp, ChannelHandlerContext ctx,
-			AbstractRemoteService remoteService)
+	private void processPostRequest(ClientsStorage clientsStore,
+			String clientId, HttpRequest req, HttpResponse resp,
+			ChannelHandlerContext ctx, AbstractRemoteService remoteService)
 			throws ClientConnectionNotExists, ClientConnectionMismatch {
 
 		LOG.debug("Process XHR request-response (POST)");
 
-		// Try to get client connection
-		XHRClient client = getClientConnection(clientId, clientsStore, remoteService,
-				XHRClient.class);
+		try {
+			// Try to get client connection
+			XHRClient client = doGetClientConnection(clientId, clientsStore,
+					remoteService);
 
-		// Decode received socket.io payload
-		List<SocketIOFrame> receivedFrames = SocketIOFrame.decodePayload(req
-				.getContent().toString(Charset.forName("UTF-8")));
-
-		// Process each frame and add to frames list
-		List<SocketIOFrame> resultFrames = new ArrayList<SocketIOFrame>();
-
-		for (SocketIOFrame frame : receivedFrames) {
-			SocketIOFrame rf = processSocketIOFrame(frame, client, clientsStore, remoteService);
+			// Set in remote service
+			remoteService.setClientConnection(client);
 			
-			if(rf != null)
-				resultFrames.add( rf );
-		}
+			// Decode received socket.io payload
+			List<SocketIOFrame> receivedFrames = SocketIOFrame
+					.decodePayload(decodePostData(req.getContent().toString(
+							Charset.forName("UTF-8"))));
 
-		// Send all frames by client object
-		client.sendFrames(resultFrames);
-		
-		// Send empty response
-		SocketIOManager.sendHttpResponse(ctx, req, resp);
+			// Process each frame and add to frames list
+			List<SocketIOFrame> resultFrames = new ArrayList<SocketIOFrame>();
+
+			for (SocketIOFrame frame : receivedFrames) {
+				SocketIOFrame rf = processSocketIOFrame(frame, client,
+						clientsStore, remoteService);
+
+				if (rf != null)
+					resultFrames.add(rf);
+			}
+
+			// Send all frames by client object
+			if (resultFrames.size() > 0)
+				client.sendFrames(resultFrames);
+
+			// Send empty response
+			SocketIOManager.sendHttpResponse(ctx, req, resp);
+
+		} finally {
+			LOG.debug("I AM THERE");
+			// Unset client from remote service
+			remoteService.clearClientConnection();
+		}
+	}
+
+	/**
+	 * Needed for decoding form POST data in JSONP and HTML transport
+	 * 
+	 * @param data
+	 * @return
+	 */
+	protected String decodePostData(String data) {
+		return data;
+	}
+
+	/**
+	 * Override this method for getting some extends of XHRClient
+	 */
+	protected XHRClient doGetClientConnection(String clientId,
+			ClientsStorage clientsStore, AbstractRemoteService remoteService)
+			throws ClientConnectionNotExists, ClientConnectionMismatch {
+		return getClientConnection(clientId, clientsStore, remoteService,
+				XHRClient.class);
 	}
 
 	/**
@@ -113,51 +147,49 @@ public class XHRTransport extends AbstractTransport {
 	 * @throws ClientConnectionMismatch
 	 * @throws ClientConnectionNotExists
 	 */
-	private void processGetRequest(ClientsStorage clientsStore, String clientId,
-			HttpRequest req, HttpResponse resp, ChannelHandlerContext ctx,
-			AbstractRemoteService remoteService)
+	private void processGetRequest(ClientsStorage clientsStore,
+			String clientId, HttpRequest req, HttpResponse resp,
+			ChannelHandlerContext ctx, AbstractRemoteService remoteService)
 			throws ClientConnectionNotExists, ClientConnectionMismatch {
 		LOG.debug("Process XHR server-push (GET)");
 
-		// Try to get client connection
-		XHRClient client = getClientConnection(clientId, clientsStore, remoteService,
-				XHRClient.class);
+		try {
+			// Try to get client connection
+			XHRClient client = doGetClientConnection(clientId, clientsStore,
+					remoteService);
+			remoteService.setClientConnection(client);
 
-		List<SocketIOFrame> buff = null;
-		synchronized (client) {
-			// If client disconnected -> send connected frame and heartbeat
-			if(client.getState() == State.DISCONNECTED) {
-				client.stopHeartbeatTask();
-				client.resetCleanupTimers();
-				client.sendFrame( SocketIOFrame.makeConnect() );
-				client.sendFrame( SocketIOFrame.makeHeartbeat() );
-			}
-			
-			// If buffer is not empty - put it to response
-			if (!client.isBufferEmpty()) {
-				LOG.debug("Client buffer is NOT empty. Flush buffer");
-				client.setState(ClientConnection.State.CONNECTING);
-				buff = client.flushBuffer();
-			} else {
-				LOG.debug("Client buffer is empty. Set CTX and CONNECTED state");
+			List<SocketIOFrame> buff = null;
+			synchronized (client) {
+				// If client disconnected -> send connected frame and heartbeat
+				if (client.getState() == State.DISCONNECTED) {
+					client.stopHeartbeatTask();
+					client.resetCleanupTimers();
+					client.sendFrame(SocketIOFrame.makeConnect());
+					client.sendFrame(SocketIOFrame.makeHeartbeat());
+				}
+
+				// If buffer is not empty - put it to response
+				if (!client.isBufferEmpty()) {
+					LOG.debug("Client buffer is NOT empty. Flush buffer");
+					buff = client.flushBuffer();
+				}
+
+				// Set all things for connected client
 				client.setCtx(ctx);
 				client.setRequestFields(req, resp);
 				client.setState(ClientConnection.State.CONNECTED);
 			}
-		}
-		
-		// Write buffer if exists
-		if(buff != null) {
-			String encodedFrames = SocketIOFrame.encodePayload(buff);
-			LOG.debug("Encode socket.io frames: "+encodedFrames);
-			ChannelBuffer content = ChannelBuffers.copiedBuffer( encodedFrames,
-					CharsetUtil.UTF_8);
-			resp.setContent(content);
-			
-			SocketIOManager.sendHttpResponse(ctx, req, resp);
+
+			// Write buffer if exists
+			if (buff != null)
+				client.sendFrames(buff);
+
+		} finally {
+			// Unset client from remote service
+			remoteService.clearClientConnection();
 		}
 	}
-
 
 	@Override
 	public String getName() {
@@ -166,9 +198,9 @@ public class XHRTransport extends AbstractTransport {
 
 	@Override
 	public void processWebSocketFrame(ClientsStorage clientsStorage,
-			WebSocketClient client, WebSocketFrame msg, ChannelHandlerContext ctx, AbstractRemoteService remoteService) {
-		// TODO Auto-generated method stub
-		
+			WebSocketClient client, WebSocketFrame msg,
+			ChannelHandlerContext ctx, AbstractRemoteService remoteService) {
+		// do nothing...
 	}
 
 }

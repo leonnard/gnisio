@@ -78,8 +78,9 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 			ChannelStateEvent e) throws Exception {
 		if (activeTransport != null
 				&& activeTransport instanceof WebSocketTransport) {
+			setWebSocketClient(ctx);
 			((WebSocketTransport) activeTransport).handleDisconnect(
-					clientsStore, currentClientId, remoteService);
+					clientsStore, wsClient, remoteService);
 		}
 	}
 
@@ -100,18 +101,7 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 							Charset.forName("UTF-8")));
 
 			if (activeTransport != null){
-				if(wsClient == null) {
-					ClientConnection cl = clientsStore.getClient(currentClientId);
-					
-					if(cl instanceof WebSocketClient)
-						wsClient = (WebSocketClient)cl;
-					else {
-						LOG.error("Current client must be WebSocket client but it dosn't. WTF?");
-						ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
-						throw new Exception();
-					}
-				}
-				
+				setWebSocketClient(ctx);
 				activeTransport.processWebSocketFrame(clientsStore, wsClient,
 						(WebSocketFrame) msg, ctx, remoteService);
 			}
@@ -126,6 +116,25 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 		else {
 			LOG.warn("Unknown message received. Close connection.");
 			ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
+		}
+	}
+	
+	/**
+	 * Set WS client in this object and throw an exception of
+	 * current client connection is not WSClient
+	 * @throws Exception 
+	 */
+	private void setWebSocketClient(ChannelHandlerContext ctx) throws Exception {
+		if(wsClient == null) {
+			ClientConnection cl = clientsStore.getClient(currentClientId);
+			
+			if(cl instanceof WebSocketClient)
+				wsClient = (WebSocketClient)cl;
+			else {
+				LOG.error("Current client must be WebSocket client but it dosn't. WTF?");
+				ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
+				throw new Exception();
+			}
 		}
 	}
 

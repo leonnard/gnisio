@@ -31,7 +31,6 @@ public abstract class AbstractTransport implements Transport {
 
 		// If only reserved or used before
 		if (clazz.isInstance(client)) {
-			remoteService.setClientConnection(client);
 			return (T) client;
 		} else if (client instanceof ConnectingClient) {
 			try {
@@ -48,7 +47,6 @@ public abstract class AbstractTransport implements Transport {
 
 				// Add new client to starage
 				storage.addClient(newClient);
-				remoteService.setClientConnection(newClient);
 				return newClient;
 			} catch (Exception e) {
 				throw new RuntimeException("Can't create instance of "
@@ -87,10 +85,13 @@ public abstract class AbstractTransport implements Transport {
 			break;
 
 		case DISCONNECT:
+			// Remove client from storage
+			storage.removeClient(client);
+			
+			// Stop all tasks and close connection
 			client.stopCleanupTimers();
 			client.stopHeartbeatTask();
 			client.setState(State.DISCONNECTED);
-			storage.removeClient(client);
 			client.getCtx().getChannel().close()
 					.addListener(ChannelFutureListener.CLOSE);
 			break;

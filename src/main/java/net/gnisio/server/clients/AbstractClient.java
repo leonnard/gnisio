@@ -27,8 +27,9 @@ import com.mycila.event.Subscriber;
  * 
  * @author c58
  */
-public abstract class AbstractClient implements ClientConnection, Subscriber<Object[]> {
-	private static final Logger LOG = LoggerFactory
+public abstract class AbstractClient implements ClientConnection,
+		Subscriber<Object[]> {
+	protected static final Logger LOG = LoggerFactory
 			.getLogger(AbstractClient.class);
 	protected ChannelHandlerContext ctx;
 
@@ -48,13 +49,14 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 
 	// Frames buffer
 	private List<SocketIOFrame> buffer = new ArrayList<SocketIOFrame>();
-	
+
 	// RPC session variables
 	private boolean init = false;
 	private String strongName;
 	private String moduleName;
 
-	public AbstractClient(String id, String sessionId, ClientsStorage clientsStorage, AbstractRemoteService remoteService) {
+	public AbstractClient(String id, String sessionId,
+			ClientsStorage clientsStorage, AbstractRemoteService remoteService) {
 		this.clientsStorage = clientsStorage;
 		this.id = id;
 		this.sessionId = sessionId;
@@ -106,12 +108,12 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 	public String getSessionId() {
 		return sessionId;
 	}
-	
+
 	@Override
 	public void setCtx(ChannelHandlerContext ctx) {
 		this.ctx = ctx;
 	}
-	
+
 	@Override
 	public ChannelHandlerContext getCtx() {
 		return this.ctx;
@@ -139,8 +141,14 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 					@Override
 					public void run() {
 						LOG.debug("Timeout HEARTBEAT. Set client as disconnected");
-						remoteService.setClientConnection(AbstractClient.this);
-						setState(State.DISCONNECTED);
+
+						try {
+							remoteService
+									.setClientConnection(AbstractClient.this);
+							setState(State.DISCONNECTED);
+						} finally {
+							remoteService.clearClientConnection();
+						}
 					}
 				});
 	}
@@ -176,83 +184,89 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 
 	@Override
 	public synchronized void setState(State state) {
-		// Notify remoteService that client connected 
-		if(this.state == State.DISCONNECTED && state != State.DISCONNECTED){
+		// Notify remoteService that client connected
+		if (this.state == State.DISCONNECTED && state != State.DISCONNECTED) {
 			this.state = state;
 			remoteService.onClientConnected();
 		}
-		// Notify remoteService that client disconnected 
-		else if(this.state != State.DISCONNECTED && state == State.DISCONNECTED) {
+		// Notify remoteService that client disconnected
+		else if (this.state != State.DISCONNECTED
+				&& state == State.DISCONNECTED) {
 			this.state = state;
-			remoteService.onClientDisconnected();			
-		}
-		else 
+			remoteService.onClientDisconnected();
+		} else
 			this.state = state;
 	}
-	
+
 	@Override
 	public void onEvent(Event<Object[]> event) throws Exception {
 		Object[] source = event.getSource();
-		
+
 		// Do nothing if this publisher is subscriber too
-		if(source[2] == this)
+		if (source[2] == this)
 			return;
-		
+
 		// Get method name and result object
 		Method method = (Method) source[0];
 		Object result = source[1];
 
 		// Get serialization policy
-		SerializationPolicy serializationPolicy = remoteService.getSerializationPolicy(getModuleName(), this.getStrongName());
+		SerializationPolicy serializationPolicy = remoteService
+				.getSerializationPolicy(getModuleName(), this.getStrongName());
 
 		// Encode result
-		String responsePayload = RPC.encodeResponseForSuccess(method, result, serializationPolicy, 1);
+		String responsePayload = RPC.encodeResponseForSuccess(method, result,
+				serializationPolicy, 1);
 
 		// Create response message
 		responsePayload = "1"
-				+ RPCUtils.hexToLength(Integer.toHexString(method.getName().length()), 2)
+				+ RPCUtils.hexToLength(
+						Integer.toHexString(method.getName().length()), 2)
 				+ method.getName() + responsePayload;
-		
-		LOG.debug("Send push result to method: "+method.getName()+". Response payload to send: "+responsePayload);
+
+		LOG.debug("Send push result to method: " + method.getName()
+				+ ". Response payload to send: " + responsePayload);
 
 		// Send response
-		sendFrame( SocketIOFrame.makeMessage( responsePayload ) );
+		sendFrame(SocketIOFrame.makeMessage(responsePayload));
 	}
 
 	@Override
 	public synchronized State getState() {
 		return state;
 	}
-	
+
 	@Override
 	public boolean isInitialized() {
 		return init;
 	}
-	
+
 	@Override
 	public void initializeRPCSession(String strongName, String moduleName) {
 		init = true;
 		this.strongName = strongName;
 		this.moduleName = moduleName;
 	}
-	
+
 	@Override
 	public String getStrongName() {
 		return strongName;
 	}
-	
+
 	@Override
 	public String getModuleName() {
 		return moduleName;
 	}
-	
+
 	@Override
 	public String toString() {
-		return " [ ID:"+id+"; SessionID:"+sessionId+"; State: "+state+"; Buffer: "+buffer+" ] ";
+		return " [ ID:" + id + "; SessionID:" + sessionId + "; State: " + state
+				+ "; Buffer: " + buffer + " ] ";
 	}
 
 	/**
 	 * Abstract method for sending frames
+	 * 
 	 * @param resultFrames
 	 */
 	protected abstract void doSendFrames(List<SocketIOFrame> resultFrames);

@@ -18,6 +18,7 @@ import com.google.gwt.core.client.GWT;
 import com.google.gwt.http.client.Header;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.Response;
+import com.google.gwt.user.client.Timer;
 
 /**
  * Controller of socket connection with GWT RPC server
@@ -113,16 +114,24 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 	 * Send init message on connect
 	 */
 	private void sendInitMessage() {
-		// Send init message
-		socket.sendMessage(serizlizationPolicy + "|" + GWT.getModuleBaseURL());
-		
-		// Free requests queue
-		String req = null;
-		while(  (req=waitQueue.poll()) != null )
-			socket.sendMessage(req);
-		
-		// Set initiated flag
-		initiated = true;
+		// Need a timer for JSONP transport
+		// I don't understand why, but if send init message immediately after connect event
+		// it don't really send a message by JSONP transport (XHR-polling and WebSocket fine)
+		new Timer() {
+			@Override
+			public void run() {
+				// Send init message
+				socket.sendMessage(serizlizationPolicy + "|" + GWT.getModuleBaseURL());
+				
+				// Free requests queue
+				String req = null;
+				while(  (req=waitQueue.poll()) != null )
+					socket.sendMessage(req);
+				
+				// Set initiated flag
+				initiated = true;	
+			}
+		}.schedule(1);
 	}
 
 	/**
@@ -232,7 +241,7 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 
 	@Override
 	public void onSIOConnected(SIOConnectedEvent event) {
-		sendInitMessage();
+		sendInitMessage();	
 	}
 
 	@Override

@@ -15,8 +15,8 @@ import org.jboss.netty.util.CharsetUtil;
 public class XHRClient extends AbstractClient {
 	
 	// GET request fields
-	private HttpResponse resp;
-	private HttpRequest req;
+	protected HttpResponse resp;
+	protected HttpRequest req;
 
 	public XHRClient(String id, String sessionId,
 			ClientsStorage clientsStorage, AbstractRemoteService remoteService) {
@@ -38,5 +38,4 @@ public class XHRClient extends AbstractClient {
 		
 		SocketIOManager.sendHttpResponse(ctx, req, resp);
 	}
-
 }
