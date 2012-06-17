@@ -5,5 +5,6 @@ import com.gwtplatform.dispatch.annotation.Order;
 
 @GenEvent
 public class SIOMessage {
-	@Order(1) String message;
+	@Order(1)
+	String message;
 }

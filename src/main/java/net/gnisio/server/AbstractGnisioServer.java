@@ -23,28 +23,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class AbstractGnisioServer {
-	private static final Logger LOG = LoggerFactory
-			.getLogger(AbstractGnisioServer.class);
+	private static final Logger LOG = LoggerFactory.getLogger(AbstractGnisioServer.class);
 
 	private ServerBootstrap bootstrap;
 	private Channel serverChannel;
 
-	public void start(int port) {
+	public void start(int port) throws Exception {
+		start("localhost", port);
+	}
+
+	public void start(String host, int port) throws Exception {
 		// Make storages
 		final ClientsStorage clientsStorage = createClientsStorage();
 		final SessionsStorage sessionsStorage = createSessionsStorage();
 
 		// Make request processors collection
-		final RequestProcessorsCollection requestProcessors = createRequestProcessorsCollection(
-				sessionsStorage, clientsStorage);
+		final RequestProcessorsCollection requestProcessors = createRequestProcessorsCollection(sessionsStorage,
+				clientsStorage);
 
 		// Make remote service
-		final AbstractRemoteService remoteService = createRemoteService(
-				sessionsStorage, clientsStorage);
+		final AbstractRemoteService remoteService = createRemoteService(sessionsStorage, clientsStorage);
 
 		// Create bootstrap
-		bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(
-				Executors.newCachedThreadPool(),
+		bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(Executors.newCachedThreadPool(),
 				Executors.newCachedThreadPool()));
 
 		// Set up the event pipeline factory.
@@ -55,9 +56,8 @@ public abstract class AbstractGnisioServer {
 				pipeline.addLast("decoder", new HttpRequestDecoder());
 				pipeline.addLast("aggregator", new HttpChunkAggregator(65536));
 				pipeline.addLast("encoder", new HttpResponseEncoder());
-				pipeline.addLast("handler", new GnisioPipelineHandler(
-						sessionsStorage, clientsStorage, requestProcessors,
-						remoteService));
+				pipeline.addLast("handler", new GnisioPipelineHandler(sessionsStorage, clientsStorage,
+						requestProcessors, remoteService));
 				return pipeline;
 			}
 		});
@@ -66,7 +66,7 @@ public abstract class AbstractGnisioServer {
 		createRequestProcessors(requestProcessors);
 
 		// Bind and start to accept incoming connections.
-		this.serverChannel = bootstrap.bind(new InetSocketAddress("192.168.1.4", port));
+		this.serverChannel = bootstrap.bind(new InetSocketAddress(host, port));
 
 		LOG.info("Server Started at port [" + port + "]");
 	}
@@ -75,9 +75,9 @@ public abstract class AbstractGnisioServer {
 	 * This method adding some request processors
 	 * 
 	 * @param requestProcessors
+	 * @throws Exception
 	 */
-	protected abstract void createRequestProcessors(
-			RequestProcessorsCollection requestProcessors);
+	protected abstract void createRequestProcessors(RequestProcessorsCollection requestProcessors) throws Exception;
 
 	/**
 	 * This method create remote service
@@ -86,8 +86,8 @@ public abstract class AbstractGnisioServer {
 	 * @param clientsStorage
 	 * @return
 	 */
-	protected abstract AbstractRemoteService createRemoteService(
-			SessionsStorage sessionsStorage, ClientsStorage clientsStorage);
+	protected abstract AbstractRemoteService createRemoteService(SessionsStorage sessionsStorage,
+			ClientsStorage clientsStorage);
 
 	/**
 	 * Override this method for using some specific SessionStorage. By default
@@ -117,9 +117,8 @@ public abstract class AbstractGnisioServer {
 	 * @param sessionsStorage
 	 * @return
 	 */
-	protected RequestProcessorsCollection createRequestProcessorsCollection(
-			SessionsStorage sessionsStorage, ClientsStorage clientsStorage) {
-		return new DefaultRequestProcessorsCollection(sessionsStorage,
-				clientsStorage);
+	protected RequestProcessorsCollection createRequestProcessorsCollection(SessionsStorage sessionsStorage,
+			ClientsStorage clientsStorage) {
+		return new DefaultRequestProcessorsCollection(sessionsStorage, clientsStorage);
 	}
 }

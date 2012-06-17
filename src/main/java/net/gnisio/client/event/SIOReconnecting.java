@@ -7,7 +7,10 @@ import com.gwtplatform.dispatch.annotation.Order;
 
 @GenEvent
 public class SIOReconnecting {
-	@Order(1) int reconnectionDelay;
-	@Order(2) int reconnectionAttempts;
-	@Order(3) ConnectionState connectionState;
+	@Order(1)
+	int reconnectionDelay;
+	@Order(2)
+	int reconnectionAttempts;
+	@Order(3)
+	ConnectionState connectionState;
 }

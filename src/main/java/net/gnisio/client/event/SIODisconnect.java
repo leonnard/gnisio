@@ -7,5 +7,6 @@ import com.gwtplatform.dispatch.annotation.Order;
 
 @GenEvent
 public class SIODisconnect {
-	@Order(1) ConnectionState connectionState;
+	@Order(1)
+	ConnectionState connectionState;
 }

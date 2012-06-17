@@ -36,11 +36,10 @@ import org.slf4j.LoggerFactory;
  */
 public class SocketIOManager {
 	private static final Logger LOG = LoggerFactory.getLogger(SocketIOManager.class);
-	
+
 	public static Option option = new Option();
 	public static Map<String, Transport> transports = new HashMap<String, Transport>();
-	private static final ScheduledExecutorService scheduledExecutorService = Executors
-			.newScheduledThreadPool(2);
+	private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
 
 	// Initialize transports
 	static {
@@ -64,15 +63,11 @@ public class SocketIOManager {
 			ResourceBundle bundle = ResourceBundle.getBundle("socketio");
 
 			heartbeat = bundle.getString("heartbeat").equals("true");
-			heartbeat_timeout = Integer.parseInt(bundle
-					.getString("heartbeat_timeout"));
+			heartbeat_timeout = Integer.parseInt(bundle.getString("heartbeat_timeout"));
 			close_timeout = Integer.parseInt(bundle.getString("close_timeout"));
-			heartbeat_interval = Integer.parseInt(bundle
-					.getString("heartbeat_interval"));
-			flash_policy_server = bundle.getString("flash_policy_server")
-					.equals("true");
-			flash_policy_port = Integer.parseInt(bundle
-					.getString("flash_policy_port"));
+			heartbeat_interval = Integer.parseInt(bundle.getString("heartbeat_interval"));
+			flash_policy_server = bundle.getString("flash_policy_server").equals("true");
+			flash_policy_port = Integer.parseInt(bundle.getString("flash_policy_port"));
 			transports = bundle.getString("transports");
 			socketio_namespace = bundle.getString("socketio_namespace");
 		}
@@ -84,9 +79,7 @@ public class SocketIOManager {
 	 * @return
 	 */
 	public static String getHandshakeTemplate() {
-		return "%s:"
-				+ (option.heartbeat ? Integer
-						.toString(option.heartbeat_timeout) : "") + ":"
+		return "%s:" + (option.heartbeat ? Integer.toString(option.heartbeat_timeout) : "") + ":"
 				+ option.close_timeout + ":" + option.transports;
 	}
 
@@ -115,8 +108,7 @@ public class SocketIOManager {
 	 * @param req
 	 * @param res
 	 */
-	public static void sendHttpResponse(ChannelHandlerContext ctx,
-			HttpRequest req, HttpResponse res) {
+	public static void sendHttpResponse(ChannelHandlerContext ctx, HttpRequest req, HttpResponse res) {
 		// Set response length
 		if (isKeepAlive(req)) {
 			// Add 'Content-Length' header only for a keep-alive connection.
@@ -126,7 +118,7 @@ public class SocketIOManager {
 			res.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
 
-		LOG.debug("Write HTTP response to client: " + res.getContent().toString( Charset.forName("UTF-8") ));
+		LOG.debug("Write HTTP response to client: " + res.getContent().toString(Charset.forName("UTF-8")));
 
 		// Send data
 		ChannelFuture f = ctx.getChannel().write(res);
@@ -136,50 +128,43 @@ public class SocketIOManager {
 			f.addListener(ChannelFutureListener.CLOSE);
 		}
 	}
-	
+
 	/**
 	 * By request return client id
 	 * 
 	 * @param uri
 	 * @return
-	 * @throws ClientConnectionNotExists 
+	 * @throws ClientConnectionNotExists
 	 */
 	public static String getClientId(HttpRequest req) throws ClientConnectionNotExists {
 		QueryStringDecoder decoder = new QueryStringDecoder(req.getUri());
-		String path = decoder.getPath().endsWith("/") ? decoder.getPath().substring(0, decoder.getPath().length()-1) : decoder.getPath();
-		String clientId = path.substring( path.lastIndexOf("/")+1 );
-		LOG.debug("Decoded clientId is: "+clientId+"; path is: "+path);
+		String path = decoder.getPath().endsWith("/") ? decoder.getPath().substring(0, decoder.getPath().length() - 1)
+				: decoder.getPath();
+		String clientId = path.substring(path.lastIndexOf("/") + 1);
+		LOG.debug("Decoded clientId is: " + clientId + "; path is: " + path);
 		return clientId;
 	}
 
 	public static ScheduledFuture<?> scheduleClearTask(Runnable runnable) {
-		return scheduledExecutorService.schedule(runnable,
-				option.close_timeout, TimeUnit.SECONDS);
+		return scheduledExecutorService.schedule(runnable, option.close_timeout, TimeUnit.SECONDS);
 	}
 
 	public static ScheduledFuture<?> scheduleHeartbeatTask(Runnable runnable) {
-		return scheduledExecutorService.schedule(runnable, option.heartbeat_interval,
-				TimeUnit.SECONDS);
+		return scheduledExecutorService.schedule(runnable, option.heartbeat_interval, TimeUnit.SECONDS);
 	}
-	
+
 	public static ScheduledFuture<?> scheduleHeartbeatTimeoutTask(Runnable runnable) {
-		return scheduledExecutorService.schedule(runnable, option.heartbeat_timeout,
-				TimeUnit.SECONDS);
+		return scheduledExecutorService.schedule(runnable, option.heartbeat_timeout, TimeUnit.SECONDS);
 	}
-	
+
 	/**
 	 * JSON Stringify equivalent (for string)
 	 */
 	public static String jsonStringify(String str) {
 		// Escape
-		str = str.replaceAll("\"", "\\\"")
-				 .replaceAll("\\\\", "\\\\\\\\")
-				 .replaceAll("\b", "\\b")
-				 .replaceAll("\f", "\\f")
-				 .replaceAll("\n", "\\n")
-				 .replaceAll("\r", "\\r")
-				 .replaceAll("\t", "\\t");
-		
+		str = str.replaceAll("\"", "\\\"").replaceAll("\\\\", "\\\\\\\\").replaceAll("\b", "\\b")
+				.replaceAll("\f", "\\f").replaceAll("\n", "\\n").replaceAll("\r", "\\r").replaceAll("\t", "\\t");
+
 		// To quotes
 		return str;
 	}

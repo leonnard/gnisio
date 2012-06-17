@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 import net.gnisio.server.clients.ClientConnection;
 import net.gnisio.server.clients.ClientsStorage;
 import net.gnisio.server.clients.ConnectingClient;
-import net.gnisio.server.clients.WebSocketClient;
 import net.gnisio.server.exceptions.ClientConnectionMismatch;
 import net.gnisio.server.exceptions.ClientConnectionNotExists;
 import net.gnisio.server.exceptions.ForceCloseConnection;
@@ -27,7 +26,6 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.handler.codec.frame.TooLongFrameException;
 import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
-import org.jboss.netty.handler.codec.http.HttpChunk;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
@@ -39,16 +37,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
-	static final Logger LOG = LoggerFactory
-			.getLogger(GnisioPipelineHandler.class);
+	static final Logger LOG = LoggerFactory.getLogger(GnisioPipelineHandler.class);
 
 	// Request check patterns
 	private final static Pattern SOCKETIO_REQUEST_PATTERN = Pattern.compile("/"
-			+ SocketIOManager.option.socketio_namespace
-			+ "/\\d{1}/([^/]+/[^/]+/?)?([^/]*)?");
-	private final static Pattern HANDSHAKE_REQUEST_PATTERN = Pattern
-			.compile("/" + SocketIOManager.option.socketio_namespace
-					+ "/\\d{1}/([^/]*)?");
+			+ SocketIOManager.option.socketio_namespace + "/\\d{1}/([^/]+/[^/]+/?)?([^/]*)?");
+	private final static Pattern HANDSHAKE_REQUEST_PATTERN = Pattern.compile("/"
+			+ SocketIOManager.option.socketio_namespace + "/\\d{1}/([^/]*)?");
 
 	// Storages
 	private final ClientsStorage clientsStore;
@@ -64,10 +59,8 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 	private String currentClientId = null;
 	private ClientConnection currentClient = null;
 
-	public GnisioPipelineHandler(SessionsStorage sessionsStore,
-			ClientsStorage clientsStore,
-			RequestProcessorsCollection requestProcessors,
-			AbstractRemoteService remoteService) {
+	public GnisioPipelineHandler(SessionsStorage sessionsStore, ClientsStorage clientsStore,
+			RequestProcessorsCollection requestProcessors, AbstractRemoteService remoteService) {
 		this.sessionsStore = sessionsStore;
 		this.clientsStore = clientsStore;
 		this.requestProcessors = requestProcessors;
@@ -75,19 +68,15 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 	}
 
 	@Override
-	public void channelDisconnected(ChannelHandlerContext ctx,
-			ChannelStateEvent e) throws Exception {
-		if (activeTransport != null
-				&& activeTransport instanceof WebSocketTransport) {
+	public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+		if (activeTransport != null && activeTransport instanceof WebSocketTransport) {
 			setCurrentClient(ctx);
-			((WebSocketTransport) activeTransport).handleDisconnect(
-					clientsStore, currentClient, remoteService);
+			((WebSocketTransport) activeTransport).handleDisconnect(clientsStore, currentClient, remoteService);
 		}
 	}
 
 	@Override
-	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e)
-			throws Exception {
+	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
 		Object msg = e.getMessage();
 
 		// Process HTTP request (for XHR transports)
@@ -98,18 +87,15 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 		// Process WebSocket frame (for websocket transport)
 		else if (msg instanceof WebSocketFrame) {
 			LOG.debug("Received WebSocket frame: "
-					+ ((WebSocketFrame) msg).getBinaryData().toString(
-							Charset.forName("UTF-8")));
+					+ ((WebSocketFrame) msg).getBinaryData().toString(Charset.forName("UTF-8")));
 
-			if (activeTransport != null){
+			if (activeTransport != null) {
 				setCurrentClient(ctx);
-				activeTransport.processWebSocketFrame(clientsStore, currentClient,
-						(WebSocketFrame) msg, ctx, remoteService);
-			}
-			else {
+				activeTransport.processWebSocketFrame(clientsStore, currentClient, (WebSocketFrame) msg, ctx,
+						remoteService);
+			} else {
 				LOG.warn("WebSocket frame received before websocket transport activated. Close connection");
-				ctx.getChannel().close()
-						.addListener(ChannelFutureListener.CLOSE);
+				ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
 			}
 
 		}
@@ -119,17 +105,18 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 			ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
 		}
 	}
-	
+
 	/**
-	 * Set WS client in this object and throw an exception of
-	 * current client connection is not WSClient
-	 * @throws Exception 
+	 * Set WS client in this object and throw an exception of current client
+	 * connection is not WSClient
+	 * 
+	 * @throws Exception
 	 */
 	private void setCurrentClient(ChannelHandlerContext ctx) throws Exception {
-		if(currentClient == null) {
+		if (currentClient == null) {
 			ClientConnection cl = clientsStore.getClient(currentClientId);
-			
-			if( !(cl instanceof ConnectingClient) )
+
+			if (!(cl instanceof ConnectingClient))
 				currentClient = cl;
 			else {
 				LOG.error("Current client must be WebSocket client but it dosn't. WTF?");
@@ -151,8 +138,7 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 	 * @param e
 	 * @throws Exception
 	 */
-	private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest req,
-			MessageEvent e) throws Exception {
+	private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest req, MessageEvent e) throws Exception {
 		LOG.debug("Request received: " + req.toString() + "\r\n\r\n"
 				+ req.getContent().toString(Charset.forName("UTF-8")));
 		HttpResponse resp = getInitResponse(req, HttpResponseStatus.OK);
@@ -164,8 +150,7 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 
 		try {
 			// Invoke preprocessor before invoking request processor
-			requestProcessors.invokeRequestPreProcessor(req, resp, ctx,
-					currentSessionId);
+			requestProcessors.invokeRequestPreProcessor(req, resp, ctx, currentSessionId);
 			isOk = true;
 
 			// Check for Socket.IO request
@@ -173,8 +158,7 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 				processSocketIORequest(ctx, req, resp);
 			} else {
 				// Invoke request processor for given request
-				requestProcessors.invokeRequestProcessor(req, resp, ctx,
-						currentSessionId);
+				requestProcessors.invokeRequestProcessor(req, resp, ctx, currentSessionId);
 			}
 
 		} catch (StopRequestProcessing ex) {
@@ -185,23 +169,20 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 			SocketIOManager.sendHttpResponse(ctx, req, resp);
 			ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
 		} catch (ClientConnectionNotExists ex) {
-			LOG.warn("Client connection with UUID=" + ex.toString()
-					+ " not exists in storage");
+			LOG.warn("Client connection with UUID=" + ex.toString() + " not exists in storage");
 			ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
 		} catch (ClientConnectionMismatch ex) {
 			LOG.warn("Client connection missmatch: " + ex.toString());
 			ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
 		} catch (Exception ex) {
-			LOG.error("Some unknown exception! " + ex.getClass() + ": "
-					+ ex.getMessage());
+			LOG.error("Some unknown exception! " + ex.getClass() + ": " + ex.getMessage());
 			ex.printStackTrace();
 			ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
 		} finally {
 			// Invoke request post processor if pre-processor not throws the
 			// exception
 			if (isOk)
-				requestProcessors.invokeRequestPostProcessor(req, resp, ctx,
-						currentSessionId);
+				requestProcessors.invokeRequestPostProcessor(req, resp, ctx, currentSessionId);
 		}
 	}
 
@@ -236,8 +217,7 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 	 * @throws ClientConnectionMismatch
 	 * @throws ClientConnectionNotExists
 	 */
-	private void processSocketIORequest(ChannelHandlerContext ctx,
-			HttpRequest req, HttpResponse resp)
+	private void processSocketIORequest(ChannelHandlerContext ctx, HttpRequest req, HttpResponse resp)
 			throws ClientConnectionNotExists, ClientConnectionMismatch {
 		String uri = req.getUri();
 
@@ -259,8 +239,7 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 	 * @throws ClientConnectionMismatch
 	 * @throws ClientConnectionNotExists
 	 */
-	private void processRegularSocketRequest(ChannelHandlerContext ctx,
-			HttpRequest req, HttpResponse resp, String uri)
+	private void processRegularSocketRequest(ChannelHandlerContext ctx, HttpRequest req, HttpResponse resp, String uri)
 			throws ClientConnectionNotExists, ClientConnectionMismatch {
 		if (activeTransport == null)
 			activeTransport = SocketIOManager.getTransportByURI(uri);
@@ -270,10 +249,8 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 			currentClientId = SocketIOManager.getClientId(req);
 
 			// Process request
-			LOG.debug("Process regular socket.io request by transport: "
-					+ activeTransport.getName());
-			activeTransport.processRequest(clientsStore, currentClientId, req,
-					resp, ctx, remoteService);
+			LOG.debug("Process regular socket.io request by transport: " + activeTransport.getName());
+			activeTransport.processRequest(clientsStore, currentClientId, req, resp, ctx, remoteService);
 		} else {
 			resp.setStatus(HttpResponseStatus.FORBIDDEN);
 			SocketIOManager.sendHttpResponse(ctx, req, resp);
@@ -288,31 +265,25 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 	 * @param resp
 	 * @param uri
 	 */
-	private void processHandshake(ChannelHandlerContext ctx, HttpRequest req,
-			HttpResponse resp, String uri) {
+	private void processHandshake(ChannelHandlerContext ctx, HttpRequest req, HttpResponse resp, String uri) {
 		LOG.debug("Process handshake: " + uri);
 
 		// Create unique ID
 		final String uID = getUniqueID();
 
 		// Reserve uid in storage
-		clientsStore.addClient(new ConnectingClient(uID, currentSessionId,
-				clientsStore, remoteService));
+		clientsStore.addClient(new ConnectingClient(uID, currentSessionId, clientsStore, remoteService));
 
 		// Create handshake answer
-		String contentString = String.format(
-				SocketIOManager.getHandshakeTemplate(), uID);
-		ChannelBuffer content = ChannelBuffers.copiedBuffer(contentString,
-				CharsetUtil.UTF_8);
+		String contentString = String.format(SocketIOManager.getHandshakeTemplate(), uID);
+		ChannelBuffer content = ChannelBuffers.copiedBuffer(contentString, CharsetUtil.UTF_8);
 
 		LOG.debug("Handshake response string is: " + contentString);
 
 		// Make response
 		resp.setContent(content);
-		resp.addHeader(HttpHeaders.Names.CONTENT_TYPE,
-				"text/plain; charset=UTF-8");
-		resp.addHeader(HttpHeaders.Names.CONNECTION,
-				HttpHeaders.Values.KEEP_ALIVE);
+		resp.addHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8");
+		resp.addHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 
 		// Write response
 		SocketIOManager.sendHttpResponse(ctx, req, resp);
@@ -334,14 +305,11 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 	 * @param status
 	 * @return
 	 */
-	private HttpResponse getInitResponse(HttpRequest req,
-			HttpResponseStatus status) {
-		HttpResponse resp = new DefaultHttpResponse(HttpVersion.HTTP_1_1,
-				status);
+	private HttpResponse getInitResponse(HttpRequest req, HttpResponseStatus status) {
+		HttpResponse resp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
 
 		if (req != null && req.getHeader("Origin") != null) {
-			resp.addHeader("Access-Control-Allow-Origin",
-					req.getHeader("Origin"));
+			resp.addHeader("Access-Control-Allow-Origin", req.getHeader("Origin"));
 			resp.addHeader("Access-Control-Allow-Credentials", "true");
 		}
 
@@ -349,8 +317,7 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 	}
 
 	@Override
-	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e)
-			throws Exception {
+	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
 		Channel ch = e.getChannel();
 		Throwable cause = e.getCause();
 		if (cause instanceof TooLongFrameException) {

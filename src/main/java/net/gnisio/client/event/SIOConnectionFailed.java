@@ -7,6 +7,6 @@ import com.gwtplatform.dispatch.annotation.Order;
 
 @GenEvent
 public class SIOConnectionFailed {
-	@Order(1) ConnectionState connectionState;
+	@Order(1)
+	ConnectionState connectionState;
 }
-

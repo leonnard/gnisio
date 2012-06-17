@@ -19,19 +19,20 @@ import com.google.gwt.http.client.Header;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.Response;
 import com.google.gwt.user.client.Timer;
-import com.google.gwt.user.client.Window;
 
 /**
  * Controller of socket connection with GWT RPC server
  * 
  * @author c58
  */
-public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedHandler, SIODisconnectHandler, SIOMessageHandler {
-	
+public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedHandler, SIODisconnectHandler,
+		SIOMessageHandler {
+
 	/**
 	 * Static instance holder
 	 */
 	private static SocketRPCController INSTANCE = null;
+
 	public static SocketRPCController getInstance() {
 		if (INSTANCE == null)
 			INSTANCE = new SocketRPCController();
@@ -48,7 +49,7 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 
 	// Serialization policy string
 	private String serizlizationPolicy;
-	
+
 	// Requests queue
 	private boolean initiated = false;
 	private final LinkedList<String> waitQueue = new LinkedList<String>();
@@ -59,7 +60,7 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 	public SocketRPCController() {
 		// Create socket connection
 		socket = SocketIOClient.getInstance();
-		
+
 		// Add handlers
 		socket.addSIOConnectedHandler(this);
 		socket.addSIOReconnectedHandler(this);
@@ -78,8 +79,8 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 	 */
 	public void registerPushMethod(String methodName, RequestCallback callback) {
 		// Get method name(it was ToweeService_Proxy.methodName)
-		methodName = methodName.substring( methodName.lastIndexOf('.')+1 );
-		
+		methodName = methodName.substring(methodName.lastIndexOf('.') + 1);
+
 		// Put it to map
 		if (!pushMethodsCallback.containsKey(methodName))
 			pushMethodsCallback.put(methodName, callback);
@@ -92,21 +93,21 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 	 * @param data
 	 * @param callback
 	 */
-	public void sendRPCRequest(int requestId, String data, RequestCallback callback) {		
-		if(requestCallback.containsKey(requestId))
+	public void sendRPCRequest(int requestId, String data, RequestCallback callback) {
+		if (requestCallback.containsKey(requestId))
 			throw new RuntimeException("Try to send request with not unique id!");
-		
+
 		// Register callback
 		requestCallback.put(requestId, callback);
-		
+
 		// Create request data with stucture: 0XXXXdata...
 		// Where 0 is identity of req/resp pattern;
-		//       XXXX is HEX unique id of request;
-		//		 data... is a content
-		String requestData = "0"+RPCUtils.hexToLength( Integer.toHexString(requestId) , 4) + data;
-		
-		if( !initiated )
-			waitQueue.add( requestData );
+		// XXXX is HEX unique id of request;
+		// data... is a content
+		String requestData = "0" + RPCUtils.hexToLength(Integer.toHexString(requestId), 4) + data;
+
+		if (!initiated)
+			waitQueue.add(requestData);
 		else
 			socket.sendMessage(requestData);
 	}
@@ -116,27 +117,30 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 	 */
 	private void sendInitMessage() {
 		// Need a timer for JSONP transport
-		// I don't understand why, but if send init message immediately after connect event
-		// it don't really send a message by JSONP transport (XHR-polling and WebSocket fine)
+		// I don't understand why, but if send init message immediately after
+		// connect event
+		// it don't really send a message by JSONP transport (XHR-polling and
+		// WebSocket fine)
 		new Timer() {
 			@Override
 			public void run() {
 				// Send init message
 				socket.sendMessage(serizlizationPolicy + "|" + GWT.getModuleBaseURL());
-				
+
 				// Free requests queue
 				String req = null;
-				while(  (req=waitQueue.poll()) != null )
+				while ((req = waitQueue.poll()) != null)
 					socket.sendMessage(req);
-				
+
 				// Set initiated flag
-				initiated = true;	
+				initiated = true;
 			}
 		}.schedule(1);
 	}
 
 	/**
 	 * Process received message
+	 * 
 	 * @param message
 	 */
 	public void processMessage(String message) {
@@ -194,7 +198,7 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 			final String data = message.substring(nameLength + 3);
 
 			// Invoke method
-			if (pushMethodsCallback.containsKey(methodName)) {				
+			if (pushMethodsCallback.containsKey(methodName)) {
 				pushMethodsCallback.get(methodName).onResponseReceived(null, new Response() {
 					public String getHeader(String header) {
 						return null;
@@ -226,6 +230,7 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 
 	/**
 	 * Set the serialization policy string for serializing RPC calls by GWT
+	 * 
 	 * @param serializationPolicy
 	 */
 	public void setSerializationPolicy(String serializationPolicy) {
@@ -242,7 +247,7 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 
 	@Override
 	public void onSIOConnected(SIOConnectedEvent event) {
-		sendInitMessage();	
+		sendInitMessage();
 	}
 
 	@Override
@@ -252,6 +257,6 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 
 	@Override
 	public void onSIOMessage(SIOMessageEvent event) {
-		processMessage( event.getMessage() );
+		processMessage(event.getMessage());
 	}
 }

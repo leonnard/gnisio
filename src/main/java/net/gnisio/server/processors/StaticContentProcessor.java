@@ -12,6 +12,7 @@ import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -37,7 +38,6 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.stream.ChunkedFile;
 import org.jboss.netty.util.CharsetUtil;
-import org.mortbay.log.Log;
 
 /**
  * Static content processor with NOT_MODIFIED response future. Also it disable
@@ -61,14 +61,12 @@ public class StaticContentProcessor extends RequestProcessor {
 	}
 
 	public StaticContentProcessor(String path, String defaultPage) {
-		this.basePath = !path.endsWith(File.separatorChar + "") ? path
-				+ File.separatorChar : path;
+		this.basePath = !path.endsWith(File.separatorChar + "") ? path + File.separatorChar : path;
 		this.defaultPage = defaultPage;
 	}
 
 	@Override
-	public void processRequest(HttpRequest request, HttpResponse resp,
-			ChannelHandlerContext ctx) throws Exception {
+	public void processRequest(HttpRequest request, HttpResponse resp, ChannelHandlerContext ctx) throws Exception {
 		if (request.getMethod() != GET)
 			sendError(resp, METHOD_NOT_ALLOWED);
 
@@ -85,32 +83,16 @@ public class StaticContentProcessor extends RequestProcessor {
 
 		if (file.isHidden() || !file.exists())
 			sendError(resp, NOT_FOUND);
-		
+
 		// Disable caching
 		if (path.contains("nocache")) {
 			setNoCacheHeaders(resp);
 		} else {
-			// Cache Validation
-			String ifModifiedSince = request
-					.getHeader(HttpHeaders.Names.IF_MODIFIED_SINCE);
-			if (ifModifiedSince != null && !ifModifiedSince.equals("")) {
-				SimpleDateFormat dateFormatter = new SimpleDateFormat(
-						HTTP_DATE_FORMAT, Locale.US);
-				Date ifModifiedSinceDate = dateFormatter.parse(ifModifiedSince);
-
-				// Only compare up to the second because the datetime format we
-				// send
-				// to the client does
-				// not have milliseconds
-				long ifModifiedSinceDateSeconds = ifModifiedSinceDate.getTime() / 1000;
-				long fileLastModifiedSeconds = file.lastModified() / 1000;
-				
-				if (ifModifiedSinceDateSeconds == fileLastModifiedSeconds)
-					sendNotModified(resp);
-			}
+			// Validate cache
+			checkLastModification(request, resp, file.lastModified());
 
 			// Set headers for caching
-			setDateAndCacheHeaders(resp, file);
+			setDateAndCacheHeaders(resp, file.lastModified());
 		}
 
 		RandomAccessFile raf;
@@ -122,7 +104,7 @@ public class StaticContentProcessor extends RequestProcessor {
 		}
 		long fileLength = raf.length();
 
-		// Set other headers 
+		// Set other headers
 		setContentLength(resp, fileLength);
 		setContentTypeHeader(resp, file);
 
@@ -137,8 +119,7 @@ public class StaticContentProcessor extends RequestProcessor {
 			writeFuture = ch.write(new ChunkedFile(raf, 0, fileLength, 8192));
 		} else {
 			// No encryption - use zero-copy.
-			final FileRegion region = new DefaultFileRegion(raf.getChannel(),
-					0, fileLength);
+			final FileRegion region = new DefaultFileRegion(raf.getChannel(), 0, fileLength);
 			writeFuture = ch.write(region);
 		}
 
@@ -146,6 +127,26 @@ public class StaticContentProcessor extends RequestProcessor {
 		if (!isKeepAlive(request)) {
 			// Close the connection when the whole content is written out.
 			writeFuture.addListener(ChannelFutureListener.CLOSE);
+		}
+	}
+
+	public static void checkLastModification(HttpRequest request, HttpResponse resp, long lastModified)
+			throws ParseException, ForceCloseConnection {
+		// Cache Validation
+		String ifModifiedSince = request.getHeader(HttpHeaders.Names.IF_MODIFIED_SINCE);
+		if (ifModifiedSince != null && !ifModifiedSince.equals("")) {
+			SimpleDateFormat dateFormatter = new SimpleDateFormat(HTTP_DATE_FORMAT, Locale.US);
+			Date ifModifiedSinceDate = dateFormatter.parse(ifModifiedSince);
+
+			// Only compare up to the second because the datetime format we
+			// send
+			// to the client does
+			// not have milliseconds
+			long ifModifiedSinceDateSeconds = ifModifiedSinceDate.getTime() / 1000;
+			long fileLastModifiedSeconds = lastModified / 1000;
+
+			if (ifModifiedSinceDateSeconds == fileLastModifiedSeconds)
+				sendNotModified(resp);
 		}
 	}
 
@@ -172,8 +173,7 @@ public class StaticContentProcessor extends RequestProcessor {
 
 		// Simplistic dumb security check.
 		// You will have to do something serious in the production environment.
-		if (uri.contains(File.separator + ".")
-				|| uri.contains("." + File.separator) || uri.startsWith(".")
+		if (uri.contains(File.separator + ".") || uri.contains("." + File.separator) || uri.startsWith(".")
 				|| uri.endsWith(".")) {
 			return null;
 		}
@@ -182,11 +182,9 @@ public class StaticContentProcessor extends RequestProcessor {
 		return basePath + uri;
 	}
 
-	private static void sendError(HttpResponse response,
-			HttpResponseStatus status) throws ForceCloseConnection {
+	protected static void sendError(HttpResponse response, HttpResponseStatus status) throws ForceCloseConnection {
 		response.setStatus(status);
-		response.setContent(ChannelBuffers.copiedBuffer(status.toString()
-				+ "\r\n", CharsetUtil.UTF_8));
+		response.setContent(ChannelBuffers.copiedBuffer(status.toString() + "\r\n", CharsetUtil.UTF_8));
 
 		throw new ForceCloseConnection();
 	}
@@ -199,8 +197,7 @@ public class StaticContentProcessor extends RequestProcessor {
 	 *            Context
 	 * @throws ForceCloseConnection
 	 */
-	private static void sendNotModified(HttpResponse response)
-			throws ForceCloseConnection {
+	private static void sendNotModified(HttpResponse response) throws ForceCloseConnection {
 		response.setStatus(HttpResponseStatus.NOT_MODIFIED);
 		setDateHeader(response);
 
@@ -214,14 +211,12 @@ public class StaticContentProcessor extends RequestProcessor {
 	 * @param response
 	 *            HTTP response
 	 */
-	private static void setDateHeader(HttpResponse response) {
-		SimpleDateFormat dateFormatter = new SimpleDateFormat(HTTP_DATE_FORMAT,
-				Locale.US);
+	public static void setDateHeader(HttpResponse response) {
+		SimpleDateFormat dateFormatter = new SimpleDateFormat(HTTP_DATE_FORMAT, Locale.US);
 		dateFormatter.setTimeZone(TimeZone.getTimeZone(HTTP_DATE_GMT_TIMEZONE));
 
 		Calendar time = new GregorianCalendar();
-		response.setHeader(HttpHeaders.Names.DATE,
-				dateFormatter.format(time.getTime()));
+		response.setHeader(HttpHeaders.Names.DATE, dateFormatter.format(time.getTime()));
 	}
 
 	/**
@@ -229,20 +224,16 @@ public class StaticContentProcessor extends RequestProcessor {
 	 * 
 	 * @param response
 	 */
-	private static void setNoCacheHeaders(HttpResponse response) {
-		SimpleDateFormat dateFormatter = new SimpleDateFormat(HTTP_DATE_FORMAT,
-				Locale.US);
+	public static void setNoCacheHeaders(HttpResponse response) {
+		SimpleDateFormat dateFormatter = new SimpleDateFormat(HTTP_DATE_FORMAT, Locale.US);
 		dateFormatter.setTimeZone(TimeZone.getTimeZone(HTTP_DATE_GMT_TIMEZONE));
 		Date now = new Date();
 
 		// Disable caching
-		response.setHeader(HttpHeaders.Names.DATE,
-				dateFormatter.format(now.getTime()));
-		response.setHeader(HttpHeaders.Names.EXPIRES,
-				dateFormatter.format(now.getTime() - 86400000L));
+		response.setHeader(HttpHeaders.Names.DATE, dateFormatter.format(now.getTime()));
+		response.setHeader(HttpHeaders.Names.EXPIRES, dateFormatter.format(now.getTime() - 86400000L));
 		response.setHeader(HttpHeaders.Names.PRAGMA, "no-cache");
-		response.setHeader(HttpHeaders.Names.CACHE_CONTROL,
-				"no-cache, no-store, must-revalidate");
+		response.setHeader(HttpHeaders.Names.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
 	}
 
 	/**
@@ -253,25 +244,19 @@ public class StaticContentProcessor extends RequestProcessor {
 	 * @param fileToCache
 	 *            file to extract content type
 	 */
-	private static void setDateAndCacheHeaders(HttpResponse response,
-			File fileToCache) {
-		SimpleDateFormat dateFormatter = new SimpleDateFormat(HTTP_DATE_FORMAT,
-				Locale.US);
+	public static void setDateAndCacheHeaders(HttpResponse response, long lastModified) {
+		SimpleDateFormat dateFormatter = new SimpleDateFormat(HTTP_DATE_FORMAT, Locale.US);
 		dateFormatter.setTimeZone(TimeZone.getTimeZone(HTTP_DATE_GMT_TIMEZONE));
 
 		// Date header
 		Calendar time = new GregorianCalendar();
-		response.setHeader(HttpHeaders.Names.DATE,
-				dateFormatter.format(time.getTime()));
+		response.setHeader(HttpHeaders.Names.DATE, dateFormatter.format(time.getTime()));
 
 		// Add cache headers
 		time.add(Calendar.SECOND, HTTP_CACHE_SECONDS);
-		response.setHeader(HttpHeaders.Names.EXPIRES,
-				dateFormatter.format(time.getTime()));
-		response.setHeader(HttpHeaders.Names.CACHE_CONTROL, "private, max-age="
-				+ HTTP_CACHE_SECONDS);
-		response.setHeader(HttpHeaders.Names.LAST_MODIFIED,
-				dateFormatter.format(new Date(fileToCache.lastModified())));
+		response.setHeader(HttpHeaders.Names.EXPIRES, dateFormatter.format(time.getTime()));
+		response.setHeader(HttpHeaders.Names.CACHE_CONTROL, "private, max-age=" + HTTP_CACHE_SECONDS);
+		response.setHeader(HttpHeaders.Names.LAST_MODIFIED, dateFormatter.format(new Date(lastModified)));
 	}
 
 	/**
@@ -282,10 +267,10 @@ public class StaticContentProcessor extends RequestProcessor {
 	 * @param file
 	 *            file to extract content type
 	 */
-	private static void setContentTypeHeader(HttpResponse response, File file) {
+	protected static void setContentTypeHeader(HttpResponse response, File file) {
 		MimetypesFileTypeMap mimeTypesMap = new MimetypesFileTypeMap();
-		response.setHeader(HttpHeaders.Names.CONTENT_TYPE,
-				mimeTypesMap.getContentType(file.getPath())+"; charset=UTF-8"  );
+		response.setHeader(HttpHeaders.Names.CONTENT_TYPE, mimeTypesMap.getContentType(file.getPath())
+				+ "; charset=UTF-8");
 	}
 
 }

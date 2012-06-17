@@ -18,11 +18,9 @@ import net.gnisio.client.event.SIOReconnectedEvent.SIOReconnectedHandler;
 import net.gnisio.client.event.SIOReconnectingEvent;
 import net.gnisio.client.event.SIOReconnectingEvent.SIOReconnectingHandler;
 
-import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.event.shared.HandlerManager;
 import com.google.gwt.event.shared.HandlerRegistration;
-import com.google.gwt.user.client.Window;
 
 /**
  * Wrapper for socket.io library versions 0.8.x
@@ -30,135 +28,137 @@ import com.google.gwt.user.client.Window;
  * @author c58
  */
 public class SocketIOClient extends HandlerManager implements HasAllSIOHandlers {
-	
+
 	/**
 	 * Static inctance holder
 	 */
 	private static SocketIOClient INSTANCE;
+
 	public static SocketIOClient getInstance() {
-		if(INSTANCE == null)
+		if (INSTANCE == null)
 			INSTANCE = new SocketIOClient();
-		
+
 		return INSTANCE;
 	}
-	
+
 	/**
-	 * JavaScript wrapper 
+	 * JavaScript wrapper
+	 * 
 	 * @author c58
 	 */
 	private static final class SocketIOImpl extends JavaScriptObject {
 
 		public static native SocketIOImpl create(SocketIOClient wrapper) /*-{
-			var socket = $wnd.io.connect();
+																			var socket = $wnd.io.connect();
 
-			socket.on('connect', function() {
-				wrapper.@net.gnisio.client.wrapper.SocketIOClient::onConnected()();
-			});
-			socket.on('connecting',	function(transportName) {
-				wrapper.@net.gnisio.client.wrapper.SocketIOClient::onConnecting(Ljava/lang/String;)(transportName);
-			});
-			socket.on('connect_failed', function() {
-				wrapper.@net.gnisio.client.wrapper.SocketIOClient::onConnectionFailed()();
-			});			
-			socket.on('message', function(msg) {
-				wrapper.@net.gnisio.client.wrapper.SocketIOClient::onMessage(Ljava/lang/String;)(msg);
-			});
-			socket.on('disconnect',	function() {
-				wrapper.@net.gnisio.client.wrapper.SocketIOClient::onDisconnect()();
-			});
-			socket.on('reconnect',	function(transport_type, reconnectionAttempts) {
-				wrapper.@net.gnisio.client.wrapper.SocketIOClient::onReconnected(Ljava/lang/String;I)(transport_type, reconnectionAttempts);
-			});
-			socket.on('reconnecting', function(reconnectionDelay,reconnectionAttempts) {
-				wrapper.@net.gnisio.client.wrapper.SocketIOClient::onReconnecting(II)(reconnectionDelay, reconnectionAttempts);
-			});
-			socket.on('reconnect_failed', function() {
-				wrapper.@net.gnisio.client.wrapper.SocketIOClient::onReconnectFailed();
-			});
-			
-			return socket;
-		}-*/;
+																			socket.on('connect', function() {
+																			wrapper.@net.gnisio.client.wrapper.SocketIOClient::onConnected()();
+																			});
+																			socket.on('connecting',	function(transportName) {
+																			wrapper.@net.gnisio.client.wrapper.SocketIOClient::onConnecting(Ljava/lang/String;)(transportName);
+																			});
+																			socket.on('connect_failed', function() {
+																			wrapper.@net.gnisio.client.wrapper.SocketIOClient::onConnectionFailed()();
+																			});			
+																			socket.on('message', function(msg) {
+																			wrapper.@net.gnisio.client.wrapper.SocketIOClient::onMessage(Ljava/lang/String;)(msg);
+																			});
+																			socket.on('disconnect',	function() {
+																			wrapper.@net.gnisio.client.wrapper.SocketIOClient::onDisconnect()();
+																			});
+																			socket.on('reconnect',	function(transport_type, reconnectionAttempts) {
+																			wrapper.@net.gnisio.client.wrapper.SocketIOClient::onReconnected(Ljava/lang/String;I)(transport_type, reconnectionAttempts);
+																			});
+																			socket.on('reconnecting', function(reconnectionDelay,reconnectionAttempts) {
+																			wrapper.@net.gnisio.client.wrapper.SocketIOClient::onReconnecting(II)(reconnectionDelay, reconnectionAttempts);
+																			});
+																			socket.on('reconnect_failed', function() {
+																			wrapper.@net.gnisio.client.wrapper.SocketIOClient::onReconnectFailed();
+																			});
+																			
+																			return socket;
+																			}-*/;
 
 		// Empty constructor special for GWT
-		protected SocketIOImpl() {}
+		protected SocketIOImpl() {
+		}
 
 		/**
 		 * Establishes a connection.
 		 */
 		public native void connect() /*-{
-			this.connect();
-		}-*/;
-		
+										this.connect();
+										}-*/;
+
 		/**
 		 * Send a string of data
+		 * 
 		 * @param message
 		 */
 		public native void send(String message) /*-{
-			this.send(message);
-		}-*/;
+												this.send(message);
+												}-*/;
 
 		/**
 		 * Closes the connection.
 		 */
 		public native void disconnect() /*-{
-			this.disconnect();
-		}-*/;
+										this.disconnect();
+										}-*/;
 	}
 
 	// State of socket connection
 	public enum ConnectionState {
-		UNKNOWN,
-		CONNECTING,
-		CONNECTED,
-		DISCONNECTING,
-		DISCONNECTED
+		UNKNOWN, CONNECTING, CONNECTED, DISCONNECTING, DISCONNECTED
 	}
-	
+
 	// JS wrapped object
 	private SocketIOImpl impl;
-	
+
 	// Current connection state
 	private ConnectionState state = ConnectionState.DISCONNECTED;
-	
+
 	/**
-	 * Default constructor that initialize HandlerManager.
-	 * By default it not start connecting to the server
+	 * Default constructor that initialize HandlerManager. By default it not
+	 * start connecting to the server
 	 */
 	public SocketIOClient() {
 		super("Socket.IO");
 	}
-	
+
 	/**
 	 * Start connecting. It do nothing if we already have the connection with
 	 * the server.
 	 */
 	public void connect() {
-		if(impl == null)
+		if (impl == null)
 			impl = SocketIOImpl.create(this);
 	}
-	
+
 	/**
 	 * Send a message to the server
+	 * 
 	 * @param message
 	 * @return true if sending success, or false otherwise
 	 */
 	public boolean sendMessage(String message) {
-		if(state == ConnectionState.CONNECTED) {
+		if (state == ConnectionState.CONNECTED) {
 			impl.send(message);
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * Return current connection state
+	 * 
 	 * @return
 	 */
 	public ConnectionState getConnectionState() {
 		return state;
 	}
-	
+
 	/*
 	 * Wrapped events
 	 */
@@ -192,9 +192,10 @@ public class SocketIOClient extends HandlerManager implements HasAllSIOHandlers 
 		this.state = ConnectionState.DISCONNECTED;
 		SIOConnectionFailedEvent.fire(this, state);
 	}
-	
+
 	/**
 	 * Fired when some message received
+	 * 
 	 * @param message
 	 */
 	public void onMessage(String message) {
@@ -220,7 +221,7 @@ public class SocketIOClient extends HandlerManager implements HasAllSIOHandlers 
 		this.state = ConnectionState.CONNECTED;
 		SIOReconnectedEvent.fire(this, transportName, resonnectionAttempts, state);
 	}
-	
+
 	/**
 	 * Fired when a reconnection is attempted, passing the next delay for the
 	 * next reconnection.
@@ -232,7 +233,7 @@ public class SocketIOClient extends HandlerManager implements HasAllSIOHandlers 
 		this.state = ConnectionState.CONNECTING;
 		SIOReconnectingEvent.fire(this, reconnectionDelay, reconnectionAttempts, state);
 	}
-	
+
 	/**
 	 * Fired when all reconnection attempts have failed and we where
 	 * unsuccessful in reconnecting to the server.

@@ -7,7 +7,10 @@ import com.gwtplatform.dispatch.annotation.Order;
 
 @GenEvent
 public class SIOReconnected {
-	@Order(1) String transportName;
-	@Order(2) int resonnectionAttempts;
-	@Order(3) ConnectionState connectionState;
+	@Order(1)
+	String transportName;
+	@Order(2)
+	int resonnectionAttempts;
+	@Order(3)
+	ConnectionState connectionState;
 }

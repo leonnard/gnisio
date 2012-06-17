@@ -28,14 +28,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WebSocketTransport extends AbstractTransport {
-	private static final Logger LOG = LoggerFactory
-			.getLogger(WebSocketTransport.class);
+	private static final Logger LOG = LoggerFactory.getLogger(WebSocketTransport.class);
 
 	@Override
-	public void processRequest(ClientsStorage clientsStore, String clientId,
-			HttpRequest req, HttpResponse resp, ChannelHandlerContext ctx,
-			AbstractRemoteService remoteService)
-			throws ClientConnectionNotExists, ClientConnectionMismatch {
+	public void processRequest(ClientsStorage clientsStore, String clientId, HttpRequest req, HttpResponse resp,
+			ChannelHandlerContext ctx, AbstractRemoteService remoteService) throws ClientConnectionNotExists,
+			ClientConnectionMismatch {
 
 		// Only GET request supported
 		if (req.getMethod() == HttpMethod.GET) {
@@ -43,19 +41,17 @@ public class WebSocketTransport extends AbstractTransport {
 
 			try {
 				// Try to get client connection
-				WebSocketClient client = getClientConnection(clientId,
-						clientsStore, remoteService, WebSocketClient.class);
+				WebSocketClient client = getClientConnection(clientId, clientsStore, remoteService,
+						WebSocketClient.class);
 
 				remoteService.setClientConnection(client);
 
 				// Handshaker
 				WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(
 						getWebSocketLocation(req), null, false);
-				WebSocketServerHandshaker handshaker = wsFactory
-						.newHandshaker(req);
+				WebSocketServerHandshaker handshaker = wsFactory.newHandshaker(req);
 				if (handshaker == null) {
-					wsFactory.sendUnsupportedWebSocketVersionResponse(ctx
-							.getChannel());
+					wsFactory.sendUnsupportedWebSocketVersionResponse(ctx.getChannel());
 				} else {
 					handshaker.handshake(ctx.getChannel(), req).addListener(
 							WebSocketServerHandshaker.HANDSHAKE_LISTENER);
@@ -93,10 +89,9 @@ public class WebSocketTransport extends AbstractTransport {
 	}
 
 	@Override
-	public void processWebSocketFrame(ClientsStorage clientsStorage,
-			ClientConnection client, WebSocketFrame frame,
-			ChannelHandlerContext ctx, AbstractRemoteService remoteService)
-			throws ClientConnectionNotExists, ClientConnectionMismatch {
+	public void processWebSocketFrame(ClientsStorage clientsStorage, ClientConnection client, WebSocketFrame frame,
+			ChannelHandlerContext ctx, AbstractRemoteService remoteService) throws ClientConnectionNotExists,
+			ClientConnectionMismatch {
 
 		try {
 			// Set current client in thread-local
@@ -105,17 +100,14 @@ public class WebSocketTransport extends AbstractTransport {
 			// Check for closing frame
 			if (frame instanceof CloseWebSocketFrame) {
 				client.setState(State.DISCONNECTED);
-				((WebSocketClient) client).getHandshaker().close(
-						ctx.getChannel(), (CloseWebSocketFrame) frame);
+				((WebSocketClient) client).getHandshaker().close(ctx.getChannel(), (CloseWebSocketFrame) frame);
 				return;
 			} else if (frame instanceof PingWebSocketFrame) {
-				ctx.getChannel().write(
-						new PongWebSocketFrame(frame.getBinaryData()));
+				ctx.getChannel().write(new PongWebSocketFrame(frame.getBinaryData()));
 				return;
 			} else if (!(frame instanceof TextWebSocketFrame)) {
-				throw new UnsupportedOperationException(String.format(
-						"%s frame types not supported", frame.getClass()
-								.getName()));
+				throw new UnsupportedOperationException(String.format("%s frame types not supported", frame.getClass()
+						.getName()));
 			}
 
 			// Get request data
@@ -125,8 +117,7 @@ public class WebSocketTransport extends AbstractTransport {
 			SocketIOFrame socketioFrame = SocketIOFrame.decodePacket(request);
 
 			// Process frame and get result
-			socketioFrame = processSocketIOFrame(socketioFrame, client,
-					clientsStorage, remoteService);
+			socketioFrame = processSocketIOFrame(socketioFrame, client, clientsStorage, remoteService);
 
 			// Send result
 			if (socketioFrame != null)
@@ -145,9 +136,8 @@ public class WebSocketTransport extends AbstractTransport {
 		return "websocket";
 	}
 
-	public void handleDisconnect(ClientsStorage clientsStore,
-			ClientConnection client, AbstractRemoteService remoteService)
-			throws ClientConnectionNotExists, ClientConnectionMismatch {
+	public void handleDisconnect(ClientsStorage clientsStore, ClientConnection client,
+			AbstractRemoteService remoteService) throws ClientConnectionNotExists, ClientConnectionMismatch {
 
 		try {
 			// Set current client in thread-local

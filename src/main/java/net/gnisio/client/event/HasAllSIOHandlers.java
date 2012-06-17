@@ -10,7 +10,7 @@ import net.gnisio.client.event.SIOReconnectedEvent.HasSIOReconnectedHandlers;
 import net.gnisio.client.event.SIOReconnectingEvent.HasSIOReconnectingHandlers;
 
 public interface HasAllSIOHandlers extends HasSIOConnectedHandlers, HasSIOConnectingHandlers,
-		HasSIOConnectionFailedHandlers, HasSIODisconnectHandlers, HasSIOMessageHandlers,
-		HasSIOReconnectedHandlers, HasSIOReconnectFailedHandlers, HasSIOReconnectingHandlers {
+		HasSIOConnectionFailedHandlers, HasSIODisconnectHandlers, HasSIOMessageHandlers, HasSIOReconnectedHandlers,
+		HasSIOReconnectFailedHandlers, HasSIOReconnectingHandlers {
 
 }

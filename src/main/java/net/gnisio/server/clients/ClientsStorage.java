@@ -1,6 +1,5 @@
 package net.gnisio.server.clients;
 
-
 /**
  * Storage of connected clients
  * 

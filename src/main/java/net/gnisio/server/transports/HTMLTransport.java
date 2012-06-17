@@ -22,6 +22,7 @@ import com.google.gwt.thirdparty.guava.common.base.Charsets;
 
 /**
  * HTMLFile transport implementation
+ * 
  * @author c58
  */
 public class HTMLTransport extends XHRTransport {
@@ -30,42 +31,36 @@ public class HTMLTransport extends XHRTransport {
 	 * Return HTML client instance
 	 */
 	@Override
-	protected XHRClient doGetClientConnection(String clientId,
-			ClientsStorage clientsStore, AbstractRemoteService remoteService)
-			throws ClientConnectionNotExists, ClientConnectionMismatch {
+	protected XHRClient doGetClientConnection(String clientId, ClientsStorage clientsStore,
+			AbstractRemoteService remoteService) throws ClientConnectionNotExists, ClientConnectionMismatch {
 
-		return getClientConnection(clientId, clientsStore, remoteService,
-				HTMLClient.class);
+		return getClientConnection(clientId, clientsStore, remoteService, HTMLClient.class);
 	}
 
 	@Override
 	protected void doPrepareConnection(ChannelHandlerContext ctx, XHRClient client, HttpResponse resp) {
 		// Set header for chunked connection
 		resp.setChunked(true);
-		resp.setHeader(HttpHeaders.Names.CONTENT_TYPE,
-				"text/html; charset=UTF-8");
-		resp.addHeader(HttpHeaders.Names.CONNECTION,
-				HttpHeaders.Values.KEEP_ALIVE);
-		resp.setHeader(HttpHeaders.Names.TRANSFER_ENCODING,
-				HttpHeaders.Values.CHUNKED);
+		resp.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/html; charset=UTF-8");
+		resp.addHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+		resp.setHeader(HttpHeaders.Names.TRANSFER_ENCODING, HttpHeaders.Values.CHUNKED);
 
 		// Write header
 		Channel chan = ctx.getChannel();
 		chan.write(resp);
-		
+
 		// Create initial message
 		StringBuilder builder = new StringBuilder();
 		builder.append("<html><body><script>var _ = function (msg) { parent.s._(msg, document); };</script>");
 		char[] spaces = new char[174];
-		Arrays.fill(spaces, ' '); 
+		Arrays.fill(spaces, ' ');
 		builder.append(spaces);
 
 		// Make initial http chunk
-		ChannelBuffer chunkContent = ChannelBuffers.dynamicBuffer(chan
-				.getConfig().getBufferFactory());
-		chunkContent.writeBytes( builder.toString().getBytes( Charsets.UTF_8 ) );
+		ChannelBuffer chunkContent = ChannelBuffers.dynamicBuffer(chan.getConfig().getBufferFactory());
+		chunkContent.writeBytes(builder.toString().getBytes(Charsets.UTF_8));
 		HttpChunk chunk = new DefaultHttpChunk(chunkContent);
-		
+
 		// Write chunk
 		chan.write(chunk);
 	}

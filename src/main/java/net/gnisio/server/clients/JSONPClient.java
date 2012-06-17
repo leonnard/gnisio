@@ -14,8 +14,7 @@ import org.jboss.netty.util.CharsetUtil;
 public class JSONPClient extends XHRClient {
 	private final static String TEMPLATE = "io.j[%s]('%s');";
 
-	public JSONPClient(String id, String sessionId,
-			ClientsStorage clientsStorage, AbstractRemoteService remoteService) {
+	public JSONPClient(String id, String sessionId, ClientsStorage clientsStorage, AbstractRemoteService remoteService) {
 		super(id, sessionId, clientsStorage, remoteService);
 	}
 
@@ -33,17 +32,15 @@ public class JSONPClient extends XHRClient {
 			reqIndex = req.getUri().substring(pos + 3);
 
 		// Encode frames
-		String result = String.format(TEMPLATE,
-				reqIndex, SocketIOManager.jsonStringify( SocketIOFrame.encodePayload(resultFrames)) );
+		String result = String.format(TEMPLATE, reqIndex,
+				SocketIOManager.jsonStringify(SocketIOFrame.encodePayload(resultFrames)));
 
 		// Set result in response
-		ChannelBuffer content = ChannelBuffers.copiedBuffer(result,
-				CharsetUtil.UTF_8);
+		ChannelBuffer content = ChannelBuffers.copiedBuffer(result, CharsetUtil.UTF_8);
 		resp.setContent(content);
 
 		// Set headers
-		resp.setHeader(HttpHeaders.Names.CONTENT_TYPE,
-				"text/javascript; charset=UTF-8");
+		resp.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/javascript; charset=UTF-8");
 		resp.addHeader("X-XSS-Protection", "0");
 
 		// Send response

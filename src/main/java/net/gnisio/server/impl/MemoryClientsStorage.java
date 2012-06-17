@@ -2,10 +2,10 @@ package net.gnisio.server.impl;
 
 import java.util.concurrent.ConcurrentMap;
 
-import org.jboss.netty.util.internal.ConcurrentHashMap;
-
 import net.gnisio.server.clients.ClientConnection;
 import net.gnisio.server.clients.ClientsStorage;
+
+import org.jboss.netty.util.internal.ConcurrentHashMap;
 
 public class MemoryClientsStorage implements ClientsStorage {
 	private final ConcurrentMap<String, ClientConnection> clientsMap = new ConcurrentHashMap<String, ClientConnection>();

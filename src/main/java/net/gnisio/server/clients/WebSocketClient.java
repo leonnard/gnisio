@@ -14,8 +14,8 @@ public class WebSocketClient extends AbstractClient {
 	private static final Logger LOG = LoggerFactory.getLogger(WebSocketClient.class);
 	private WebSocketServerHandshaker handshaker;
 
-	public WebSocketClient(String id, String sessionId,
-			ClientsStorage clientsStorage, AbstractRemoteService remoteService) {
+	public WebSocketClient(String id, String sessionId, ClientsStorage clientsStorage,
+			AbstractRemoteService remoteService) {
 		super(id, sessionId, clientsStorage, remoteService);
 	}
 
@@ -29,10 +29,10 @@ public class WebSocketClient extends AbstractClient {
 
 	@Override
 	protected void doSendFrames(List<SocketIOFrame> resultFrames) {
-		for(SocketIOFrame frame : resultFrames){
+		for (SocketIOFrame frame : resultFrames) {
 			String encodedFrames = SocketIOFrame.encodePacket(frame);
-			LOG.debug("Send WebSocket frame: "+encodedFrames);
-			ctx.getChannel().write(new TextWebSocketFrame( encodedFrames ));	
+			LOG.debug("Send WebSocket frame: " + encodedFrames);
+			ctx.getChannel().write(new TextWebSocketFrame(encodedFrames));
 		}
 	}
 

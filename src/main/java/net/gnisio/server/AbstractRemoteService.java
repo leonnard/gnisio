@@ -39,8 +39,7 @@ import com.mycila.event.Topics;
  * 
  */
 public abstract class AbstractRemoteService implements SerializationPolicyProvider {
-	private static final Logger LOG = LoggerFactory
-			.getLogger(AbstractRemoteService.class);
+	private static final Logger LOG = LoggerFactory.getLogger(AbstractRemoteService.class);
 
 	private static final ThreadLocal<ClientConnection> currentClient = new ThreadLocal<ClientConnection>();
 
@@ -61,14 +60,15 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	private final Dispatcher dispatcher;
 
 	/**
-	 * Constructor for knowing where GWT application located 
+	 * Constructor for knowing where GWT application located
+	 * 
 	 * @param basePath
 	 */
 	public AbstractRemoteService(String gwtAppLocation) {
 		this.baseAppPath = gwtAppLocation;
 		this.dispatcher = Dispatchers.broadcastUnordered();
 	}
-	
+
 	/**
 	 * Set local-thread client connection
 	 * 
@@ -77,9 +77,10 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	public void setClientConnection(ClientConnection conn) {
 		currentClient.set(conn);
 	}
-	
+
 	/**
-	 * Clear thread-local client connection. Must be paired with setClientConnection
+	 * Clear thread-local client connection. Must be paired with
+	 * setClientConnection
 	 */
 	public void clearClientConnection() {
 		currentClient.remove();
@@ -111,7 +112,7 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	 */
 	public String processPayload(String data) {
 		ClientConnection client = getClientConnection();
-		
+
 		// First message by client must contain strongName and moduleName
 		// that initialize client-server RPC session
 		if (!client.isInitialized()) {
@@ -124,7 +125,7 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 
 			// Initialize RPC session
 			client.initializeRPCSession(parts[0], parts[1]);
-			LOG.debug("Initialize RPC session: "+parts[0]+"  "+parts[1]);
+			LOG.debug("Initialize RPC session: " + parts[0] + "  " + parts[1]);
 			return null;
 		} else {
 			// Get data pattern type: 0XXXXdata
@@ -140,8 +141,8 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 			data = data.substring(5);
 			String result = null;
 
-			LOG.debug("Process RPC request with ID: "+reqId);
-			
+			LOG.debug("Process RPC request with ID: " + reqId);
+
 			// Do RPC invoke
 			try {
 				result = processRPCRequest(data);
@@ -173,23 +174,16 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	private String processRPCRequest(String data) throws SerializationException {
 		String result = null;
 		try {
-			RPCRequest rpcRequest = RPC.decodeRequest(data, this.getClass(),
-					this);
+			RPCRequest rpcRequest = RPC.decodeRequest(data, this.getClass(), this);
 
-			result = RPC.invokeAndEncodeResponse(this, rpcRequest.getMethod(),
-					rpcRequest.getParameters(),
+			result = RPC.invokeAndEncodeResponse(this, rpcRequest.getMethod(), rpcRequest.getParameters(),
 					rpcRequest.getSerializationPolicy(), rpcRequest.getFlags());
-			LOG.info("Encoded result: Flags(" + rpcRequest.getFlags() + ") "
-					+ result);
+			LOG.info("Encoded result: Flags(" + rpcRequest.getFlags() + ") " + result);
 		} catch (IncompatibleRemoteServiceException ex) {
-			LOG.info(
-					"An IncompatibleRemoteServiceException was thrown while processing this call.",
-					ex);
+			LOG.info("An IncompatibleRemoteServiceException was thrown while processing this call.", ex);
 			result = RPC.encodeResponseForFailure(null, ex);
 		} catch (RpcTokenException tokenException) {
-			LOG.info(
-					"An RpcTokenException was thrown while processing this call.",
-					tokenException);
+			LOG.info("An RpcTokenException was thrown while processing this call.", tokenException);
 			result = RPC.encodeResponseForFailure(null, tokenException);
 		}
 
@@ -197,11 +191,9 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	}
 
 	@Override
-	public SerializationPolicy getSerializationPolicy(String moduleBaseURL,
-			String strongName) {
+	public SerializationPolicy getSerializationPolicy(String moduleBaseURL, String strongName) {
 		// Try to get policy from cache
-		SerializationPolicy serializationPolicy = getCachedSerializationPolicy(
-				moduleBaseURL, strongName);
+		SerializationPolicy serializationPolicy = getCachedSerializationPolicy(moduleBaseURL, strongName);
 
 		// Policy found in cache, return it
 		if (serializationPolicy != null) {
@@ -209,8 +201,7 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 		}
 
 		// Load policy and store it in cache
-		serializationPolicy = doGetSerializationPolicy(moduleBaseURL,
-				strongName);
+		serializationPolicy = doGetSerializationPolicy(moduleBaseURL, strongName);
 
 		if (serializationPolicy == null) {
 			// Failed to get the requested serialization policy; use the default
@@ -224,18 +215,17 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 
 		// This could cache null or an actual instance. Either way we will not
 		// attempt to lookup the policy again.
-		putCachedSerializationPolicy(moduleBaseURL, strongName,
-				serializationPolicy);
+		putCachedSerializationPolicy(moduleBaseURL, strongName, serializationPolicy);
 
 		return serializationPolicy;
 	}
 
 	/**
 	 * Used by HybridServiceServlet.
-	 * @param strongName2 
+	 * 
+	 * @param strongName2
 	 */
-	static SerializationPolicy loadSerializationPolicy(String baseAppPath, String moduleBaseURL,
-			String strongName) {
+	static SerializationPolicy loadSerializationPolicy(String baseAppPath, String moduleBaseURL, String strongName) {
 		String modulePath = null;
 		if (moduleBaseURL != null) {
 			try {
@@ -254,33 +244,28 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 		 * override this method.
 		 */
 		if (modulePath == null) {
-			String message = "ERROR: The module path requested, "
-					+ modulePath
+			String message = "ERROR: The module path requested, " + modulePath
 					+ ", is not in the same web application as this servlet. "
 					+ "  Your module may not be properly configured or your client and server code maybe out of date.";
 			LOG.warn(message);
 		} else {
-			String serializationPolicyFilePath = SerializationPolicyLoader
-					.getSerializationPolicyFileName(modulePath + strongName);
+			String serializationPolicyFilePath = SerializationPolicyLoader.getSerializationPolicyFileName(modulePath
+					+ strongName);
 
 			// Open the RPC resource file and read its contents.
 			InputStream is = getResourceAsStream(baseAppPath + serializationPolicyFilePath);
 			try {
 				if (is != null) {
 					try {
-						serializationPolicy = SerializationPolicyLoader
-								.loadFromStream(is, null);
+						serializationPolicy = SerializationPolicyLoader.loadFromStream(is, null);
 						LOG.info("Serialization policy loaded successfully.");
 					} catch (ParseException e) {
-						LOG.error("ERROR: Failed to parse the policy file '"
-								+ serializationPolicyFilePath + "'", e);
+						LOG.error("ERROR: Failed to parse the policy file '" + serializationPolicyFilePath + "'", e);
 					} catch (IOException e) {
-						LOG.error("ERROR: Could not read the policy file '"
-								+ serializationPolicyFilePath + "'", e);
+						LOG.error("ERROR: Could not read the policy file '" + serializationPolicyFilePath + "'", e);
 					}
 				} else {
-					String message = "ERROR: The serialization policy file '"
-							+ serializationPolicyFilePath
+					String message = "ERROR: The serialization policy file '" + serializationPolicyFilePath
 							+ "' was not found; did you forget to include it in this deployment?";
 					LOG.error(message);
 				}
@@ -300,10 +285,10 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 
 	private static InputStream getResourceAsStream(String serializationPolicyFilePath) {
 		File pol = new File(serializationPolicyFilePath);
-		
-		if(!pol.exists() || !pol.isFile() || !pol.canRead())
+
+		if (!pol.exists() || !pol.isFile() || !pol.canRead())
 			return null;
-		
+
 		try {
 			return new FileInputStream(pol);
 		} catch (FileNotFoundException e) {
@@ -323,30 +308,27 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	 * @param strongName
 	 *            a strong name that uniquely identifies a serialization policy
 	 *            file
-	 * @param strongName2 
+	 * @param strongName2
 	 * @return a {@link SerializationPolicy} for the given module base URL and
 	 *         strong name, or <code>null</code> if there is none
 	 */
-	protected SerializationPolicy doGetSerializationPolicy(
-			String moduleBaseURL, String strongName) {
+	protected SerializationPolicy doGetSerializationPolicy(String moduleBaseURL, String strongName) {
 		return loadSerializationPolicy(baseAppPath, moduleBaseURL, strongName);
 	}
 
-	private SerializationPolicy getCachedSerializationPolicy(
-			String moduleBaseURL, String strongName) {
+	private SerializationPolicy getCachedSerializationPolicy(String moduleBaseURL, String strongName) {
 		synchronized (serializationPolicyCache) {
 			return serializationPolicyCache.get(moduleBaseURL + strongName);
 		}
 	}
 
-	private void putCachedSerializationPolicy(String moduleBaseURL,
-			String strongName, SerializationPolicy serializationPolicy) {
+	private void putCachedSerializationPolicy(String moduleBaseURL, String strongName,
+			SerializationPolicy serializationPolicy) {
 		synchronized (serializationPolicyCache) {
-			serializationPolicyCache.put(moduleBaseURL + strongName,
-					serializationPolicy);
+			serializationPolicyCache.put(moduleBaseURL + strongName, serializationPolicy);
 		}
 	}
-	
+
 	/**
 	 * Push the message to subscribers by given node
 	 * 
@@ -370,16 +352,17 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 			dispatcher.subscribe(Topics.anyOf(nodes), Object.class, (Subscriber<Object[]>) getClientConnection());
 		}
 	}
-	
+
 	/**
 	 * Remove subscriber from given topics
+	 * 
 	 * @param nodes
 	 */
 	@SuppressWarnings("unchecked")
 	protected void removeSubscriber(String... nodes) {
 		dispatcher.unsubscribe(Topics.anyOf(nodes), (Subscriber<Object[]>) getClientConnection());
 	}
-	
+
 	/**
 	 * Fully remove subscriber
 	 */
@@ -387,9 +370,10 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	protected void removeSubscriber() {
 		dispatcher.unsubscribe((Subscriber<Object[]>) getClientConnection());
 	}
-	
+
 	/**
 	 * Return method of this object. Neede for push methods
+	 * 
 	 * @param name
 	 * @param response
 	 * @return

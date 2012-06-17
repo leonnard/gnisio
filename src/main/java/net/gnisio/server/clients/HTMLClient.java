@@ -17,8 +17,7 @@ import com.google.gwt.thirdparty.guava.common.base.Charsets;
 public class HTMLClient extends XHRClient {
 	private final static String TEMPLATE = "<script>_('%s');</script>";
 
-	public HTMLClient(String id, String sessionId,
-			ClientsStorage clientsStorage, AbstractRemoteService remoteService) {
+	public HTMLClient(String id, String sessionId, ClientsStorage clientsStorage, AbstractRemoteService remoteService) {
 		super(id, sessionId, clientsStorage, remoteService);
 	}
 
@@ -26,15 +25,14 @@ public class HTMLClient extends XHRClient {
 	protected void doSendFrames(List<SocketIOFrame> resultFrames) {
 		// Make result message
 		String result = String.format(TEMPLATE,
-				 SocketIOManager.jsonStringify( SocketIOFrame.encodePayload(resultFrames)) );
+				SocketIOManager.jsonStringify(SocketIOFrame.encodePayload(resultFrames)));
 
 		// Get channel
 		Channel channel = ctx.getChannel();
 
 		// Make http chunk
-		ChannelBuffer chunkContent = ChannelBuffers.dynamicBuffer(channel
-				.getConfig().getBufferFactory());
-		chunkContent.writeBytes( result.getBytes( Charsets.UTF_8 ) );
+		ChannelBuffer chunkContent = ChannelBuffers.dynamicBuffer(channel.getConfig().getBufferFactory());
+		chunkContent.writeBytes(result.getBytes(Charsets.UTF_8));
 		HttpChunk chunk = new DefaultHttpChunk(chunkContent);
 
 		LOG.debug("Write HTTP chunk by htmlfile: " + result);

@@ -27,10 +27,8 @@ import com.mycila.event.Subscriber;
  * 
  * @author c58
  */
-public abstract class AbstractClient implements ClientConnection,
-		Subscriber<Object[]> {
-	protected static final Logger LOG = LoggerFactory
-			.getLogger(AbstractClient.class);
+public abstract class AbstractClient implements ClientConnection, Subscriber<Object[]> {
+	protected static final Logger LOG = LoggerFactory.getLogger(AbstractClient.class);
 	protected ChannelHandlerContext ctx;
 
 	// Current state of client
@@ -55,8 +53,8 @@ public abstract class AbstractClient implements ClientConnection,
 	private String strongName;
 	private String moduleName;
 
-	public AbstractClient(String id, String sessionId,
-			ClientsStorage clientsStorage, AbstractRemoteService remoteService) {
+	public AbstractClient(String id, String sessionId, ClientsStorage clientsStorage,
+			AbstractRemoteService remoteService) {
 		this.clientsStorage = clientsStorage;
 		this.id = id;
 		this.sessionId = sessionId;
@@ -66,16 +64,14 @@ public abstract class AbstractClient implements ClientConnection,
 	@Override
 	public synchronized void sendFrames(List<SocketIOFrame> resultFrames) {
 		// If we can send data now - send it
-		if (getState() == State.CONNECTED && ctx != null
-				&& ctx.getChannel().isConnected()) {
+		if (getState() == State.CONNECTED && ctx != null && ctx.getChannel().isConnected()) {
 			LOG.debug("Connection is alive. Send data");
-			
+
 			doSendFrames(resultFrames);
 		}
 		// Otherwise add to buffer
 		else {
-			LOG.debug("Connection is NOT alive. Add data to buffer: "
-					+ resultFrames);
+			LOG.debug("Connection is NOT alive. Add data to buffer: " + resultFrames);
 			buffer.addAll(resultFrames);
 			LOG.debug("Buffer of client is: " + buffer.toString());
 		}
@@ -88,8 +84,8 @@ public abstract class AbstractClient implements ClientConnection,
 
 	@Override
 	public boolean isBufferEmpty() {
-		LOG.debug("Checking buffer: client(" + this.toString() + "); buffer("
-				+ buffer.toString() + "); isEmpty(" + buffer.isEmpty() + ")");
+		LOG.debug("Checking buffer: client(" + this.toString() + "); buffer(" + buffer.toString() + "); isEmpty("
+				+ buffer.isEmpty() + ")");
 		return buffer.isEmpty();
 	}
 
@@ -130,28 +126,25 @@ public abstract class AbstractClient implements ClientConnection,
 				LOG.debug("Timeout CLOSE. Close connection");
 
 				if (ctx != null)
-					ctx.getChannel().close()
-							.addListener(ChannelFutureListener.CLOSE);
+					ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
 
 				clientsStorage.removeClient(AbstractClient.this);
 			}
 		});
 
-		heartbeatTimeoutTask = SocketIOManager
-				.scheduleHeartbeatTimeoutTask(new Runnable() {
-					@Override
-					public void run() {
-						LOG.debug("Timeout HEARTBEAT. Set client as disconnected");
+		heartbeatTimeoutTask = SocketIOManager.scheduleHeartbeatTimeoutTask(new Runnable() {
+			@Override
+			public void run() {
+				LOG.debug("Timeout HEARTBEAT. Set client as disconnected");
 
-						try {
-							remoteService
-									.setClientConnection(AbstractClient.this);
-							setState(State.DISCONNECTED);
-						} finally {
-							remoteService.clearClientConnection();
-						}
-					}
-				});
+				try {
+					remoteService.setClientConnection(AbstractClient.this);
+					setState(State.DISCONNECTED);
+				} finally {
+					remoteService.clearClientConnection();
+				}
+			}
+		});
 	}
 
 	@Override
@@ -191,8 +184,7 @@ public abstract class AbstractClient implements ClientConnection,
 			remoteService.onClientConnected();
 		}
 		// Notify remoteService that client disconnected
-		else if (this.state != State.DISCONNECTED
-				&& state == State.DISCONNECTED) {
+		else if (this.state != State.DISCONNECTED && state == State.DISCONNECTED) {
 			this.state = state;
 			remoteService.onClientDisconnected();
 		} else
@@ -212,21 +204,17 @@ public abstract class AbstractClient implements ClientConnection,
 		Object result = source[1];
 
 		// Get serialization policy
-		SerializationPolicy serializationPolicy = remoteService
-				.getSerializationPolicy(getModuleName(), this.getStrongName());
+		SerializationPolicy serializationPolicy = remoteService.getSerializationPolicy(getModuleName(),
+				this.getStrongName());
 
 		// Encode result
-		String responsePayload = RPC.encodeResponseForSuccess(method, result,
-				serializationPolicy, 1);
+		String responsePayload = RPC.encodeResponseForSuccess(method, result, serializationPolicy, 1);
 
 		// Create response message
-		responsePayload = "1"
-				+ RPCUtils.hexToLength(
-						Integer.toHexString(method.getName().length()), 2)
+		responsePayload = "1" + RPCUtils.hexToLength(Integer.toHexString(method.getName().length()), 2)
 				+ method.getName() + responsePayload;
 
-		LOG.debug("Send push result to method: " + method.getName()
-				+ ". Response payload to send: " + responsePayload);
+		LOG.debug("Send push result to method: " + method.getName() + ". Response payload to send: " + responsePayload);
 
 		// Send response
 		sendFrame(SocketIOFrame.makeMessage(responsePayload));
@@ -261,8 +249,7 @@ public abstract class AbstractClient implements ClientConnection,
 
 	@Override
 	public String toString() {
-		return " [ ID:" + id + "; SessionID:" + sessionId + "; State: " + state
-				+ "; Buffer: " + buffer + " ] ";
+		return " [ ID:" + id + "; SessionID:" + sessionId + "; State: " + state + "; Buffer: " + buffer + " ] ";
 	}
 
 	/**

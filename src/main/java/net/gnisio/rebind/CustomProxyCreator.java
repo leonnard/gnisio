@@ -6,16 +6,11 @@ import java.util.Map;
 import net.gnisio.client.wrapper.Push;
 import net.gnisio.client.wrapper.SocketServiceProxy;
 
-
 import com.google.gwt.core.ext.typeinfo.JClassType;
-import com.google.gwt.core.ext.typeinfo.JField;
 import com.google.gwt.core.ext.typeinfo.JMethod;
-import com.google.gwt.core.ext.typeinfo.JPackage;
 import com.google.gwt.core.ext.typeinfo.JParameter;
-import com.google.gwt.core.ext.typeinfo.JParameterizedType;
 import com.google.gwt.core.ext.typeinfo.JPrimitiveType;
 import com.google.gwt.core.ext.typeinfo.JType;
-import com.google.gwt.core.ext.typeinfo.NotFoundException;
 import com.google.gwt.core.ext.typeinfo.TypeOracle;
 import com.google.gwt.dev.generator.NameFactory;
 import com.google.gwt.http.client.Request;
@@ -121,16 +116,15 @@ public class CustomProxyCreator extends ProxyCreator {
 		} else {
 			// This method should have been caught by
 			// RemoteServiceAsyncValidator
-			throw new RuntimeException("Unhandled return type "
-					+ asyncReturnType.getQualifiedSourceName());
+			throw new RuntimeException("Unhandled return type " + asyncReturnType.getQualifiedSourceName());
 		}
 
 		JParameter callbackParam = asyncParams[asyncParams.length - 1];
 		String callbackName = callbackParam.getName();
 		JType returnType = syncMethod.getReturnType();
 		w.print("ResponseReader." + getResponseReaderFor(returnType).name());
-		w.println(", \"" + getProxySimpleName() + "." + syncMethod.getName() + "\", " + statsContextName
-				+ ", " + callbackName + ");");
+		w.println(", \"" + getProxySimpleName() + "." + syncMethod.getName() + "\", " + statsContextName + ", "
+				+ callbackName + ");");
 
 		w.outdent();
 		w.println("}");
@@ -147,25 +141,26 @@ public class CustomProxyCreator extends ProxyCreator {
 
 		return ResponseReader.OBJECT;
 	}
-	
-	  /**
-	   * Generate any fields required by the proxy.
-	   *
-	   * @param serializableTypeOracle the type oracle
-	   */
-	  protected void generateProxyFields(SourceWriter srcWriter,
-	      SerializableTypeOracle serializableTypeOracle,
-	      String serializationPolicyStrongName, String remoteServiceInterfaceName) {
-		  
-		  // Write fields
-		  super.generateProxyFields(srcWriter, serializableTypeOracle, serializationPolicyStrongName, remoteServiceInterfaceName);
-		  
-		  // Write abstract method for wrapping serialization policy
-		  srcWriter.println("public String getSerializationPolicy() {");
-		  srcWriter.indent();
-		  srcWriter.println("return \""+serializationPolicyStrongName + "\";");
-		  srcWriter.outdent();
-		  srcWriter.println("}");
-		  srcWriter.println();
-	  }
+
+	/**
+	 * Generate any fields required by the proxy.
+	 * 
+	 * @param serializableTypeOracle
+	 *            the type oracle
+	 */
+	protected void generateProxyFields(SourceWriter srcWriter, SerializableTypeOracle serializableTypeOracle,
+			String serializationPolicyStrongName, String remoteServiceInterfaceName) {
+
+		// Write fields
+		super.generateProxyFields(srcWriter, serializableTypeOracle, serializationPolicyStrongName,
+				remoteServiceInterfaceName);
+
+		// Write abstract method for wrapping serialization policy
+		srcWriter.println("public String getSerializationPolicy() {");
+		srcWriter.indent();
+		srcWriter.println("return \"" + serializationPolicyStrongName + "\";");
+		srcWriter.outdent();
+		srcWriter.println("}");
+		srcWriter.println();
+	}
 }

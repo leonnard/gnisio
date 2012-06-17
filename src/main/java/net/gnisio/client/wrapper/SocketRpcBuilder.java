@@ -15,8 +15,6 @@
  *******************************************************************************/
 package net.gnisio.client.wrapper;
 
-
-
 import com.google.gwt.http.client.Request;
 import com.google.gwt.http.client.RequestBuilder;
 import com.google.gwt.http.client.RequestCallback;
@@ -24,47 +22,46 @@ import com.google.gwt.http.client.RequestException;
 import com.google.gwt.user.client.rpc.RpcRequestBuilder;
 
 public class SocketRpcBuilder extends RpcRequestBuilder {
-    
-    /**
-	 * @author  c58
+
+	/**
+	 * @author c58
 	 */
-    protected static class SocketRequestBuilder extends RequestBuilder {
-        private int requestId;
+	protected static class SocketRequestBuilder extends RequestBuilder {
+		private int requestId;
 
-        public SocketRequestBuilder(String url) {
-            super(RequestBuilder.POST.toString(), url);
-        }
-        
-        public void setRequestId(int id){
-        	requestId = id;
-        }
-        
-        @Override
-        public Request send() throws RequestException {
-            return doSend(getRequestData(), getCallback());
-        }
+		public SocketRequestBuilder(String url) {
+			super(RequestBuilder.POST.toString(), url);
+		}
 
-        @Override
-        public Request sendRequest(String requestData, RequestCallback callback)
-                throws RequestException {
-            return doSend(requestData, callback);
-        }
+		public void setRequestId(int id) {
+			requestId = id;
+		}
 
-        protected Request doSend(final String data, final RequestCallback callback){
-        	SocketRPCController.getInstance().sendRPCRequest(requestId, data, callback);
-        	return null;
-        }
-    }
-    
-    /**
-     * Create our WS request builder
-     */
-    @Override
-    protected RequestBuilder doCreate(String serviceEntryPoint) {        
-        return new SocketRequestBuilder(serviceEntryPoint);
-    }
-    
-    protected void doSetRequestId(RequestBuilder rb, int id) {
-    	((SocketRequestBuilder) rb).setRequestId(id);
-    }
+		@Override
+		public Request send() throws RequestException {
+			return doSend(getRequestData(), getCallback());
+		}
+
+		@Override
+		public Request sendRequest(String requestData, RequestCallback callback) throws RequestException {
+			return doSend(requestData, callback);
+		}
+
+		protected Request doSend(final String data, final RequestCallback callback) {
+			SocketRPCController.getInstance().sendRPCRequest(requestId, data, callback);
+			return null;
+		}
+	}
+
+	/**
+	 * Create our WS request builder
+	 */
+	@Override
+	protected RequestBuilder doCreate(String serviceEntryPoint) {
+		return new SocketRequestBuilder(serviceEntryPoint);
+	}
+
+	protected void doSetRequestId(RequestBuilder rb, int id) {
+		((SocketRequestBuilder) rb).setRequestId(id);
+	}
 }

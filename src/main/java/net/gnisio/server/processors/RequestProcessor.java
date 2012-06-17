@@ -13,6 +13,7 @@ public abstract class RequestProcessor {
 
 	/**
 	 * This method invoked while adding it to the processors collection
+	 * 
 	 * @param sessionsStorage
 	 * @param clientsStorage
 	 */
@@ -20,13 +21,14 @@ public abstract class RequestProcessor {
 		this.sessionsStorage = sessionsStorage;
 		this.clientsStorage = clientsStorage;
 	}
-	
+
 	/**
-	 * This method invoked when some HTTP request received 
+	 * This method invoked when some HTTP request received
+	 * 
 	 * @param req
 	 * @param resp
-	 * @param ctx 
-	 * @throws Throwable 
+	 * @param ctx
+	 * @throws Throwable
 	 */
 	public abstract void processRequest(HttpRequest req, HttpResponse resp, ChannelHandlerContext ctx) throws Exception;
 }

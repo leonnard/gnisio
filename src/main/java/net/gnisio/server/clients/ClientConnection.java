@@ -18,42 +18,49 @@ public interface ClientConnection {
 
 	/**
 	 * Return ID of client
+	 * 
 	 * @return
 	 */
 	String getId();
-	
+
 	/**
 	 * Return id of current session
+	 * 
 	 * @return
 	 */
 	String getSessionId();
-	
+
 	/**
 	 * Send multiple socket.io frames
+	 * 
 	 * @param resultFrames
 	 */
 	void sendFrames(List<SocketIOFrame> resultFrames);
-	
+
 	/**
 	 * Send single socket.io frame
+	 * 
 	 * @param frame
 	 */
 	void sendFrame(SocketIOFrame frame);
-	
+
 	/**
 	 * Set state of connection
+	 * 
 	 * @param state
 	 */
 	void setState(State state);
-	
+
 	/**
 	 * Return current state of connection
+	 * 
 	 * @param state
 	 */
 	State getState();
-	
+
 	/**
 	 * Set recent alive channel context
+	 * 
 	 * @param ctx
 	 */
 	void setCtx(ChannelHandlerContext ctx);
@@ -72,7 +79,7 @@ public interface ClientConnection {
 	 * Start task for sending heartbeat
 	 */
 	void startHeartbeatTask();
-	
+
 	/**
 	 * Stop task for sending heartbeat
 	 */
@@ -80,31 +87,35 @@ public interface ClientConnection {
 
 	/**
 	 * Flush buffer of frames
+	 * 
 	 * @return
 	 */
 	List<SocketIOFrame> flushBuffer();
 
 	/**
 	 * Return true if buffer of frames not empty
+	 * 
 	 * @return
 	 */
 	boolean isBufferEmpty();
 
 	/**
 	 * Return CTX of client
+	 * 
 	 * @return
 	 */
 	ChannelHandlerContext getCtx();
 
 	/**
 	 * Return true if GWT RPC session intialized
+	 * 
 	 * @return
 	 */
 	boolean isInitialized();
-	
+
 	void initializeRPCSession(String strongName, String moduleName);
-	
+
 	String getStrongName();
-	
+
 	String getModuleName();
 }

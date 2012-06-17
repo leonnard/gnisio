@@ -25,10 +25,8 @@ import org.slf4j.LoggerFactory;
  * 
  * @author c58
  */
-public class DefaultRequestProcessorsCollection implements
-		RequestProcessorsCollection {
-	private static final Logger LOG = LoggerFactory
-			.getLogger(DefaultRequestProcessorsCollection.class);
+public class DefaultRequestProcessorsCollection implements RequestProcessorsCollection {
+	private static final Logger LOG = LoggerFactory.getLogger(DefaultRequestProcessorsCollection.class);
 
 	// Comparator for processor patterns
 	// More slashes in begin of map
@@ -63,14 +61,10 @@ public class DefaultRequestProcessorsCollection implements
 	private final SessionsStorage sessionsStorage;
 	private final ClientsStorage clientStorage;
 
-	public DefaultRequestProcessorsCollection(SessionsStorage sessionsStorage,
-			ClientsStorage clientsStorage) {
-		this.processors = new TreeMap<Pattern, RequestProcessor>(
-				pattsComparator);
-		this.preprocessors = new TreeMap<Pattern, RequestProcessor>(
-				pattsComparator);
-		this.postprocessors = new TreeMap<Pattern, RequestProcessor>(
-				pattsComparator);
+	public DefaultRequestProcessorsCollection(SessionsStorage sessionsStorage, ClientsStorage clientsStorage) {
+		this.processors = new TreeMap<Pattern, RequestProcessor>(pattsComparator);
+		this.preprocessors = new TreeMap<Pattern, RequestProcessor>(pattsComparator);
+		this.postprocessors = new TreeMap<Pattern, RequestProcessor>(pattsComparator);
 
 		this.clientStorage = clientsStorage;
 		this.sessionsStorage = sessionsStorage;
@@ -79,8 +73,7 @@ public class DefaultRequestProcessorsCollection implements
 	@Override
 	public void invokeRequestPreProcessor(HttpRequest req, HttpResponse resp, ChannelHandlerContext ctx,
 			String sessionId) throws Exception {
-		RequestProcessor proc = getAppropriateProcessor(preprocessors,
-				req.getUri());
+		RequestProcessor proc = getAppropriateProcessor(preprocessors, req.getUri());
 
 		try {
 			if (proc != null)
@@ -91,10 +84,9 @@ public class DefaultRequestProcessorsCollection implements
 	}
 
 	@Override
-	public void invokeRequestProcessor(HttpRequest req, HttpResponse resp, ChannelHandlerContext ctx,
-			String sessionId) throws Exception {
-		RequestProcessor proc = getAppropriateProcessor(processors,
-				req.getUri());
+	public void invokeRequestProcessor(HttpRequest req, HttpResponse resp, ChannelHandlerContext ctx, String sessionId)
+			throws Exception {
+		RequestProcessor proc = getAppropriateProcessor(processors, req.getUri());
 
 		if (proc != null)
 			proc.processRequest(req, resp, ctx);
@@ -103,8 +95,7 @@ public class DefaultRequestProcessorsCollection implements
 	@Override
 	public void invokeRequestPostProcessor(HttpRequest req, HttpResponse resp, ChannelHandlerContext ctx,
 			String sessionId) throws Exception {
-		RequestProcessor proc = getAppropriateProcessor(postprocessors,
-				req.getUri());
+		RequestProcessor proc = getAppropriateProcessor(postprocessors, req.getUri());
 
 		if (proc != null)
 			proc.processRequest(req, resp, ctx);
@@ -132,23 +123,18 @@ public class DefaultRequestProcessorsCollection implements
 	 * @param uri
 	 * @return
 	 */
-	protected RequestProcessor getAppropriateProcessor(
-			SortedMap<Pattern, RequestProcessor> map, String uri) {
+	protected RequestProcessor getAppropriateProcessor(SortedMap<Pattern, RequestProcessor> map, String uri) {
 		LOG.debug("Start matching URI: " + uri);
 
-		// Add slash to end if not one
-		uri = (!uri.endsWith("/")) ? uri + "/" : uri;
-
 		// Get iterator
-		Iterator<Entry<Pattern, RequestProcessor>> it = map.entrySet()
-				.iterator();
+		Iterator<Entry<Pattern, RequestProcessor>> it = map.entrySet().iterator();
 
 		while (it.hasNext()) {
 			Entry<Pattern, RequestProcessor> ent = it.next();
 
-			LOG.debug("Try match pattern: " + ent.getKey().pattern());
+			LOG.debug("Try match pattern: " + ent.getKey().pattern() + "  with  " + uri);
 
-			if (ent.getKey().matcher(uri).matches())
+			if (ent.getKey().matcher(uri.trim()).matches())
 				return ent.getValue();
 		}
 
@@ -162,8 +148,7 @@ public class DefaultRequestProcessorsCollection implements
 	 * @param proc
 	 * @param pat
 	 */
-	protected void addToProcessors(SortedMap<Pattern, RequestProcessor> map,
-			RequestProcessor proc, String pat) {
+	protected void addToProcessors(SortedMap<Pattern, RequestProcessor> map, RequestProcessor proc, String pat) {
 		// Create RegExp pattern by GLOB
 		String regexp = convertGlobToRegEx(pat);
 		Pattern patc = Pattern.compile(regexp);

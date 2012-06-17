@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 
 /**
  * Socket.IO packet for versions 0.8.x
+ * 
  * @author c58
  */
 public class SocketIOFrame {
@@ -99,8 +100,7 @@ public class SocketIOFrame {
 	 * @author c58
 	 */
 	public enum FrameType {
-		UNKNOWN(-1), DISCONNECT(0), CONNECT(1), HEARTBEAT(2), MESSAGE(3), JSON(4), EVENT(5), ACK(6), ERROR(
-				7), NOOP(8);
+		UNKNOWN(-1), DISCONNECT(0), CONNECT(1), HEARTBEAT(2), MESSAGE(3), JSON(4), EVENT(5), ACK(6), ERROR(7), NOOP(8);
 
 		private int value;
 
@@ -140,8 +140,7 @@ public class SocketIOFrame {
 	}
 
 	// Pattern for getting pieces of packet
-	private static final Pattern decodePat = Pattern
-			.compile("([^:]+):([0-9]+)?(\\+)?:([^:]+)?:?([\\s\\S]*)?");
+	private static final Pattern decodePat = Pattern.compile("([^:]+):([0-9]+)?(\\+)?:([^:]+)?:?([\\s\\S]*)?");
 
 	/**
 	 * Decode single packet and return SocketIOFrame instance
@@ -232,24 +231,25 @@ public class SocketIOFrame {
 	 * @param frame
 	 * @return
 	 */
-	public static String encodePacket( SocketIOFrame frame ) {
+	public static String encodePacket(SocketIOFrame frame) {
 		// Data to send
 		String data = null;
-		
+
 		// Set data to send
-		switch(frame.getFrameType()) {
+		switch (frame.getFrameType()) {
 		case MESSAGE:
 		case JSON:
 			data = frame.getData();
 			break;
-	    case CONNECT:
-	    	data = frame.getQs();
-	    	break;
+		case CONNECT:
+			data = frame.getQs();
+			break;
 		case ERROR:
-			data = frame.getErrorReason().value() + "+" + (frame.getErrorAdvice() != null ? frame.getErrorAdvice().value() : "");
-		    break;
+			data = frame.getErrorReason().value() + "+"
+					+ (frame.getErrorAdvice() != null ? frame.getErrorAdvice().value() : "");
+			break;
 		}
-		  
+
 		// Construct packet with required fragments
 		String encoded = frame.getFrameType().value() + "::";
 
@@ -268,33 +268,33 @@ public class SocketIOFrame {
 	 */
 	public static String encodePayload(List<SocketIOFrame> frames) {
 		// For single request
-		if( frames.size() == 1 )
-			return encodePacket( frames.get(0) );
-		
+		if (frames.size() == 1)
+			return encodePacket(frames.get(0));
+
 		// For multiple requests
 		StringBuilder builder = new StringBuilder();
-		for(SocketIOFrame f : frames){
+		for (SocketIOFrame f : frames) {
 			String encodedPacket = encodePacket(f);
 			builder.append('\ufffd');
-			builder.append( encodedPacket.length() );
+			builder.append(encodedPacket.length());
 			builder.append('\ufffd');
-			builder.append( encodePacket(f) );
+			builder.append(encodePacket(f));
 		}
 
 		return builder.toString();
 	}
-	
+
 	/**
 	 * Message makers
 	 */
 	public static SocketIOFrame makeHeartbeat() {
 		return new SocketIOFrame(FrameType.HEARTBEAT, null, null, null, null, null, null);
 	}
-	
+
 	public static SocketIOFrame makeMessage(String data) {
 		return new SocketIOFrame(FrameType.MESSAGE, data, false, "", "", null, null);
 	}
-	
+
 	public static SocketIOFrame makeConnect() {
 		return new SocketIOFrame(FrameType.CONNECT, null, null, null, null, null, null);
 	}
@@ -344,7 +344,7 @@ public class SocketIOFrame {
 	public String getQs() {
 		return qs;
 	}
-	
+
 	public boolean isJson() {
 		return isJson;
 	}
@@ -356,14 +356,14 @@ public class SocketIOFrame {
 	public FrameErrorAdvice getErrorAdvice() {
 		return errorAdvice;
 	}
-	
+
 	public String encode() {
-		return encodePacket( this ); 
+		return encodePacket(this);
 	}
-	
+
 	@Override
 	public String toString() {
-		return " ["+frameType+":"+data+"] ";
+		return " [" + frameType + ":" + data + "] ";
 	}
 
 }
