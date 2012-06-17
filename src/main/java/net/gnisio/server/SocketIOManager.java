@@ -57,7 +57,7 @@ public class SocketIOManager {
 		public int heartbeat_interval = 25;
 		public boolean flash_policy_server = true;
 		public int flash_policy_port = 10843;
-		public String transports = "websocket,xhr-polling,jsonp-polling,htmlfile";
+		public String transports = "htmlfile,websocket,jsonp-polling,xhr-polling";
 		public String socketio_namespace = "io";
 
 		{

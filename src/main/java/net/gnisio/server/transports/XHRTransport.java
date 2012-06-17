@@ -164,10 +164,9 @@ public class XHRTransport extends AbstractTransport {
 			synchronized (client) {
 				// If client disconnected -> send connected frame and heartbeat
 				if (client.getState() == State.DISCONNECTED) {
-					client.stopHeartbeatTask();
-					client.resetCleanupTimers();
+					client.startHeartbeatTask();
+					client.stopCleanupTimers();
 					client.sendFrame(SocketIOFrame.makeConnect());
-					client.sendFrame(SocketIOFrame.makeHeartbeat());
 				}
 
 				// If buffer is not empty - put it to response

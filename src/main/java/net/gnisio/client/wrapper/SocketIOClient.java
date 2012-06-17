@@ -22,6 +22,7 @@ import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.event.shared.HandlerManager;
 import com.google.gwt.event.shared.HandlerRegistration;
+import com.google.gwt.user.client.Window;
 
 /**
  * Wrapper for socket.io library versions 0.8.x
@@ -142,7 +143,6 @@ public class SocketIOClient extends HandlerManager implements HasAllSIOHandlers 
 	 * @return true if sending success, or false otherwise
 	 */
 	public boolean sendMessage(String message) {
-		GWT.log(state + "|" + message);
 		if(state == ConnectionState.CONNECTED) {
 			impl.send(message);
 			return true;

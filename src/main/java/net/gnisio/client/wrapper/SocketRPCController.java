@@ -19,6 +19,7 @@ import com.google.gwt.http.client.Header;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.Response;
 import com.google.gwt.user.client.Timer;
+import com.google.gwt.user.client.Window;
 
 /**
  * Controller of socket connection with GWT RPC server

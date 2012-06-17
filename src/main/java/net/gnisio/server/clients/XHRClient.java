@@ -8,6 +8,7 @@ import net.gnisio.server.SocketIOManager;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.util.CharsetUtil;
@@ -34,6 +35,7 @@ public class XHRClient extends AbstractClient {
 		
 		ChannelBuffer content = ChannelBuffers.copiedBuffer( SocketIOFrame.encodePayload(resultFrames),
 				CharsetUtil.UTF_8);
+		resp.addHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8");
 		resp.setContent(content);
 		
 		SocketIOManager.sendHttpResponse(ctx, req, resp);

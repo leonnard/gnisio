@@ -80,10 +80,9 @@ public class WebSocketTransport extends AbstractTransport {
 					client.sendFrames(buff);
 
 				// Initiate heartbeat
-				client.resetCleanupTimers();
-				client.stopHeartbeatTask();
+				client.stopCleanupTimers();
+				client.startHeartbeatTask();
 				client.sendFrame(SocketIOFrame.makeConnect());
-				client.sendFrame(SocketIOFrame.makeHeartbeat());
 
 			} finally {
 				remoteService.clearClientConnection();
