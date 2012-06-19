@@ -32,7 +32,7 @@ public abstract class AbstractGnisioServer {
 		start("localhost", port);
 	}
 
-	public void start(String host, int port) throws Exception {
+	public void start(final String host, int port) throws Exception {
 		// Make storages
 		final ClientsStorage clientsStorage = createClientsStorage();
 		final SessionsStorage sessionsStorage = createSessionsStorage();
@@ -43,6 +43,7 @@ public abstract class AbstractGnisioServer {
 
 		// Make remote service
 		final AbstractRemoteService remoteService = createRemoteService(sessionsStorage, clientsStorage);
+		remoteService.init( sessionsStorage );
 
 		// Create bootstrap
 		bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(Executors.newCachedThreadPool(),
@@ -57,7 +58,7 @@ public abstract class AbstractGnisioServer {
 				pipeline.addLast("aggregator", new HttpChunkAggregator(65536));
 				pipeline.addLast("encoder", new HttpResponseEncoder());
 				pipeline.addLast("handler", new GnisioPipelineHandler(sessionsStorage, clientsStorage,
-						requestProcessors, remoteService));
+						requestProcessors, remoteService, host));
 				return pipeline;
 			}
 		});

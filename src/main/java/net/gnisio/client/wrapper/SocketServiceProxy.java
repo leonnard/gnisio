@@ -25,7 +25,7 @@ public abstract class SocketServiceProxy extends RemoteServiceProxy {
 		// Create request callback
 		RequestCallback reqCallback = new RequestCallbackAdapter<T>(this, eventName, new RpcStatsContext(),
 		        callback, getRpcTokenExceptionHandler(), responseReader);
-		
+
 		// Register it in socket controller
 		SocketRPCController.getInstance().registerPushEvent(eventName, reqCallback);
 	}

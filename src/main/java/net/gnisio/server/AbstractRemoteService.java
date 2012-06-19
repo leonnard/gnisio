@@ -11,6 +11,7 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 
+import net.gnisio.server.SessionsStorage.Session;
 import net.gnisio.server.clients.ClientConnection;
 import net.gnisio.shared.PushEventType;
 
@@ -60,6 +61,11 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	private final Dispatcher dispatcher;
 
 	/**
+	 * Initialized by init method and used by getSession method
+	 */
+	private SessionsStorage sessionsStore;
+
+	/**
 	 * Constructor for knowing where GWT application located
 	 * 
 	 * @param basePath
@@ -67,6 +73,10 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	public AbstractRemoteService(String gwtAppLocation) {
 		this.baseAppPath = gwtAppLocation;
 		this.dispatcher = Dispatchers.broadcastUnordered();
+	}
+	
+	public void init(SessionsStorage sessionsStore) {
+		this.sessionsStore = sessionsStore;
 	}
 
 	/**
@@ -87,12 +97,15 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	}
 
 	/**
-	 * Return current session id
+	 * Return current session
 	 * 
 	 * @return
 	 */
-	public String getSessionId() {
-		return getClientConnection().getSessionId();
+	public Session getSession() {
+		if(sessionsStore != null)
+			return sessionsStore.getSession( getClientConnection().getSessionId() );
+		
+		return null;
 	}
 
 	/**

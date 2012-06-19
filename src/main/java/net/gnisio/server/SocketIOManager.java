@@ -39,7 +39,9 @@ public class SocketIOManager {
 
 	public static Option option = new Option();
 	public static Map<String, Transport> transports = new HashMap<String, Transport>();
-	private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
+	private static RandomBase64Generator randomGenerator = new RandomBase64Generator();
+	
+	private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(10);
 
 	// Initialize transports
 	static {
@@ -57,7 +59,8 @@ public class SocketIOManager {
 		public boolean flash_policy_server = true;
 		public int flash_policy_port = 10843;
 		public String transports = "htmlfile,websocket,jsonp-polling,xhr-polling";
-		public String socketio_namespace = "io";
+		public String socketio_namespace = "socket.io";
+		public long session_timeout = 600;
 
 		{
 			ResourceBundle bundle = ResourceBundle.getBundle("socketio");
@@ -70,6 +73,7 @@ public class SocketIOManager {
 			flash_policy_port = Integer.parseInt(bundle.getString("flash_policy_port"));
 			transports = bundle.getString("transports");
 			socketio_namespace = bundle.getString("socketio_namespace");
+			session_timeout = Integer.parseInt(bundle.getString("session_timeout"));
 		}
 	}
 
@@ -156,6 +160,10 @@ public class SocketIOManager {
 	public static ScheduledFuture<?> scheduleHeartbeatTimeoutTask(Runnable runnable) {
 		return scheduledExecutorService.schedule(runnable, option.heartbeat_timeout, TimeUnit.SECONDS);
 	}
+	
+	public static ScheduledFuture<?> scheduleSessionTimeoutTask(Runnable runnable) {
+		return scheduledExecutorService.schedule(runnable, option.session_timeout , TimeUnit.SECONDS);
+	}
 
 	/**
 	 * JSON Stringify equivalent (for string)
@@ -167,5 +175,9 @@ public class SocketIOManager {
 
 		// To quotes
 		return str;
+	}
+	
+	public static String generateString(int length) {
+		return randomGenerator.next(length);
 	}
 }

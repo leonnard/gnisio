@@ -1,9 +1,11 @@
 package net.gnisio.server;
 
 import java.nio.charset.Charset;
-import java.util.UUID;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.regex.Pattern;
 
+import net.gnisio.server.SessionsStorage.Session;
 import net.gnisio.server.clients.ClientConnection;
 import net.gnisio.server.clients.ClientsStorage;
 import net.gnisio.server.clients.ConnectingClient;
@@ -25,6 +27,10 @@ import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.handler.codec.frame.TooLongFrameException;
+import org.jboss.netty.handler.codec.http.Cookie;
+import org.jboss.netty.handler.codec.http.CookieDecoder;
+import org.jboss.netty.handler.codec.http.CookieEncoder;
+import org.jboss.netty.handler.codec.http.DefaultCookie;
 import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpRequest;
@@ -52,19 +58,25 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 
 	// Request processors collection
 	private RequestProcessorsCollection requestProcessors;
+	
+	// Cookie decoder and encoder
+	private final CookieDecoder cookDecoder = new CookieDecoder();
 
 	// For WebSocket and http keep-alive connections
 	private Transport activeTransport = null;
 	private String currentSessionId = null;
 	private String currentClientId = null;
 	private ClientConnection currentClient = null;
+	private final String hostName;
 
 	public GnisioPipelineHandler(SessionsStorage sessionsStore, ClientsStorage clientsStore,
-			RequestProcessorsCollection requestProcessors, AbstractRemoteService remoteService) {
+			RequestProcessorsCollection requestProcessors, AbstractRemoteService remoteService,
+			String host) {
 		this.sessionsStore = sessionsStore;
 		this.clientsStore = clientsStore;
 		this.requestProcessors = requestProcessors;
 		this.remoteService = remoteService;
+		this.hostName = host;
 	}
 
 	@Override
@@ -90,6 +102,7 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 					+ ((WebSocketFrame) msg).getBinaryData().toString(Charset.forName("UTF-8")));
 
 			if (activeTransport != null) {
+				sessionsStore.resetClearTimer( currentSessionId );
 				setCurrentClient(ctx);
 				activeTransport.processWebSocketFrame(clientsStore, currentClient, (WebSocketFrame) msg, ctx,
 						remoteService);
@@ -146,7 +159,7 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 
 		// Prepare user session
 		if (currentSessionId == null)
-			currentSessionId = prepareSession(req);
+			currentSessionId = prepareSession(req, resp);
 
 		try {
 			// Invoke preprocessor before invoking request processor
@@ -192,11 +205,42 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 	 * session and set cookie ID
 	 * 
 	 * @param req
+	 * @param resp 
 	 * @return
 	 */
-	private String prepareSession(HttpRequest req) {
-		// TODO Auto-generated method stub
-		return null;
+	private String prepareSession(HttpRequest req, HttpResponse resp) {
+		String cookieString = req.getHeader(HttpHeaders.Names.COOKIE);
+		
+		// Try to find alive session in cookies
+		if(cookieString != null) {
+			Set<Cookie> cookies = cookDecoder.decode(cookieString);
+			Iterator<Cookie> it = cookies.iterator();
+			
+			while(it.hasNext()) {
+				Cookie cook = it.next();
+				if(cook.getName().equals("__sessId") && sessionsStore.getSession(cook.getValue()) != null ) {
+					sessionsStore.resetClearTimer( cook.getValue() );
+					return cook.getValue();
+				}
+			}
+		}
+		
+		// Create session
+		Session sess = sessionsStore.createSession();
+		
+		// Create cookie
+		Cookie sessCookie = new DefaultCookie("__sessId", sess.getId());
+		sessCookie.setPath("/");
+		sessCookie.setDomain(hostName);
+		sessCookie.setMaxAge(-1);
+		sessCookie.setVersion(1);
+		
+		// Set cookie in response
+		CookieEncoder cookEncoder = new CookieEncoder(false);
+		cookEncoder.addCookie(sessCookie);
+		resp.setHeader(HttpHeaders.Names.SET_COOKIE, cookEncoder.encode());
+		
+		return sess.getId();
 	}
 
 	/**
@@ -295,7 +339,7 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 	 * @return
 	 */
 	protected String getUniqueID() {
-		return UUID.randomUUID().toString();
+		return SocketIOManager.generateString(64);
 	}
 
 	/**
