@@ -192,12 +192,11 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 	}
 
 	@Override
-	@SuppressWarnings("rawtypes")
 	public void onEvent(Event<Object[]> event) throws Exception {
 		Object[] source = event.getSource();
 
 		// Do nothing if this publisher is subscriber too
-		if (source[2] == this)
+		if (source[2] == this || !isInitialized())
 			return;
 
 		// Get PushEventType and result object
@@ -207,25 +206,24 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 
 		// Get serialization policy
 		SerializationPolicy serializationPolicy = remoteService.getSerializationPolicy(getModuleName(),
-				this.getStrongName());
+				getStrongName());
 
 		// Encode result
-		ServerSerializationStreamWriter stream = new ServerSerializationStreamWriter(
-		        serializationPolicy);
+		ServerSerializationStreamWriter stream = new ServerSerializationStreamWriter(serializationPolicy);
 		stream.setFlags(1);
 		stream.prepareToWrite();
-		
-		if (result.getClass() != void.class) 
-		      stream.serializeValue(result, result.getClass());
+
+		if (result.getClass() != void.class)
+			stream.serializeValue(result, result.getClass());
 
 		// Create response message
 		String responsePayload = "1" + RPCUtils.hexToLength(Integer.toHexString(eventCanonicalName.length()), 2)
 				+ eventCanonicalName + "//OK" + stream.toString();
 
-		LOG.debug("Send push result to event: " + eventCanonicalName  + ". Response payload to send: " + responsePayload);
+		LOG.debug("Send push result to event: " + eventCanonicalName + ". Response payload to send: " + responsePayload);
 
-		// Send response
-		sendFrame(SocketIOFrame.makeMessage(responsePayload));
+		// Send response if RPC connection initialized
+		sendFrame( SocketIOFrame.makeMessage(responsePayload) );
 	}
 
 	@Override
@@ -234,12 +232,12 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 	}
 
 	@Override
-	public boolean isInitialized() {
+	public synchronized boolean isInitialized() {
 		return init;
 	}
 
 	@Override
-	public void initializeRPCSession(String strongName, String moduleName) {
+	public synchronized void initializeRPCSession(String strongName, String moduleName) {
 		init = true;
 		this.strongName = strongName;
 		this.moduleName = moduleName;
