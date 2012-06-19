@@ -1,6 +1,5 @@
 package net.gnisio.server.clients;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -9,6 +8,7 @@ import java.util.concurrent.ScheduledFuture;
 import net.gnisio.server.AbstractRemoteService;
 import net.gnisio.server.SocketIOFrame;
 import net.gnisio.server.SocketIOManager;
+import net.gnisio.shared.PushEventType;
 import net.gnisio.shared.RPCUtils;
 
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -16,8 +16,8 @@ import org.jboss.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gwt.user.server.rpc.RPC;
 import com.google.gwt.user.server.rpc.SerializationPolicy;
+import com.google.gwt.user.server.rpc.impl.ServerSerializationStreamWriter;
 import com.mycila.event.Event;
 import com.mycila.event.Subscriber;
 
@@ -192,6 +192,7 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 	}
 
 	@Override
+	@SuppressWarnings("rawtypes")
 	public void onEvent(Event<Object[]> event) throws Exception {
 		Object[] source = event.getSource();
 
@@ -199,8 +200,9 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 		if (source[2] == this)
 			return;
 
-		// Get method name and result object
-		Method method = (Method) source[0];
+		// Get PushEventType and result object
+		PushEventType eventType = (PushEventType) source[0];
+		String eventCanonicalName = eventType.getClass().getCanonicalName() + "." + eventType.toString();
 		Object result = source[1];
 
 		// Get serialization policy
@@ -208,13 +210,19 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 				this.getStrongName());
 
 		// Encode result
-		String responsePayload = RPC.encodeResponseForSuccess(method, result, serializationPolicy, 1);
+		ServerSerializationStreamWriter stream = new ServerSerializationStreamWriter(
+		        serializationPolicy);
+		stream.setFlags(1);
+		stream.prepareToWrite();
+		
+		if (result.getClass() != void.class) 
+		      stream.serializeValue(result, result.getClass());
 
 		// Create response message
-		responsePayload = "1" + RPCUtils.hexToLength(Integer.toHexString(method.getName().length()), 2)
-				+ method.getName() + responsePayload;
+		String responsePayload = "1" + RPCUtils.hexToLength(Integer.toHexString(eventCanonicalName.length()), 2)
+				+ eventCanonicalName + "//OK" + stream.toString();
 
-		LOG.debug("Send push result to method: " + method.getName() + ". Response payload to send: " + responsePayload);
+		LOG.debug("Send push result to event: " + eventCanonicalName  + ". Response payload to send: " + responsePayload);
 
 		// Send response
 		sendFrame(SocketIOFrame.makeMessage(responsePayload));

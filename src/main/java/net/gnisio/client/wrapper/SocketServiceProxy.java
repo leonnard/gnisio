@@ -1,9 +1,9 @@
 package net.gnisio.client.wrapper;
 
-import com.google.gwt.http.client.Request;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.rpc.impl.RemoteServiceProxy;
+import com.google.gwt.user.client.rpc.impl.RequestCallbackAdapter;
 import com.google.gwt.user.client.rpc.impl.RequestCallbackAdapter.ResponseReader;
 import com.google.gwt.user.client.rpc.impl.RpcStatsContext;
 import com.google.gwt.user.client.rpc.impl.Serializer;
@@ -20,17 +20,16 @@ public abstract class SocketServiceProxy extends RemoteServiceProxy {
 		// Set serialization policy
 		SocketRPCController.getInstance().setSerializationPolicy(getSerializationPolicy());
 	}
-
-	protected <T> Request doRegisterPushMethod(ResponseReader responseReader, String methodName,
-			RpcStatsContext statsContext, AsyncCallback<T> callback) {
-
+	
+	protected <T> void doCreatePushEventHandler(ResponseReader responseReader, String eventName, AsyncCallback<T> callback){
 		// Create request callback
-		RequestCallback reqCallback = doCreateRequestCallback(responseReader, methodName, statsContext, callback);
-
+		RequestCallback reqCallback = new RequestCallbackAdapter<T>(this, eventName, new RpcStatsContext(),
+		        callback, getRpcTokenExceptionHandler(), responseReader);
+		
 		// Register it in socket controller
-		SocketRPCController.getInstance().registerPushMethod(methodName, reqCallback);
-		return null;
+		SocketRPCController.getInstance().registerPushEvent(eventName, reqCallback);
 	}
 
 	public abstract String getSerializationPolicy();
+
 }

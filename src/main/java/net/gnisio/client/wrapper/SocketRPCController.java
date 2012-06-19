@@ -1,7 +1,9 @@
 package net.gnisio.client.wrapper;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import net.gnisio.client.event.SIOConnectedEvent;
@@ -44,7 +46,7 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 	private final SocketIOClient socket;
 
 	// Map with push callback objects
-	private Map<String, RequestCallback> pushMethodsCallback = new HashMap<String, RequestCallback>();
+	private Map<String, List<RequestCallback>> pushEventsCallback = new HashMap<String, List<RequestCallback>>();
 	private Map<Integer, RequestCallback> requestCallback = new HashMap<Integer, RequestCallback>();
 
 	// Serialization policy string
@@ -74,16 +76,15 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 	 * one push method. If push method with given name already registered it do
 	 * nothing.
 	 * 
-	 * @param methodName
+	 * @param eventName
 	 * @param callback
 	 */
-	public void registerPushMethod(String methodName, RequestCallback callback) {
-		// Get method name(it was ToweeService_Proxy.methodName)
-		methodName = methodName.substring(methodName.lastIndexOf('.') + 1);
-
+	public void registerPushEvent(String eventName, RequestCallback callback) {
 		// Put it to map
-		if (!pushMethodsCallback.containsKey(methodName))
-			pushMethodsCallback.put(methodName, callback);
+		if (!pushEventsCallback.containsKey(eventName))
+			pushEventsCallback.put(eventName, new ArrayList<RequestCallback>());
+		
+		pushEventsCallback.get(eventName).add(callback);
 	}
 
 	/**
@@ -196,10 +197,10 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 
 			// Get data
 			final String data = message.substring(nameLength + 3);
-
+			
 			// Invoke method
-			if (pushMethodsCallback.containsKey(methodName)) {
-				pushMethodsCallback.get(methodName).onResponseReceived(null, new Response() {
+			if (pushEventsCallback.containsKey(methodName)) {
+				firePushEvent(methodName, new Response() {
 					public String getHeader(String header) {
 						return null;
 					}
@@ -226,6 +227,11 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 				});
 			}
 		}
+	}
+	
+	private void firePushEvent(String eventType, Response response) {
+		for(RequestCallback callback : pushEventsCallback.get(eventType))
+			callback.onResponseReceived(null, response); 
 	}
 
 	/**

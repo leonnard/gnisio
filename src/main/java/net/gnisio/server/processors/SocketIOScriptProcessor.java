@@ -43,7 +43,7 @@ public class SocketIOScriptProcessor extends RequestProcessor {
 		loadFile(new File(url.getFile()));
 	}
 
-	// Load socket.io file to memory
+	// Load socket.io file from specified path
 	public SocketIOScriptProcessor(String jsPath) throws IOException {
 		loadFile(new File(jsPath));
 	}

@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
@@ -13,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import net.gnisio.server.clients.ClientConnection;
+import net.gnisio.shared.PushEventType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -336,8 +336,8 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	 * @param node
 	 * @param result
 	 */
-	protected <T> void publishMessage(Method method, T result, String node) {
-		dispatcher.publish(Topic.topic(node), new Object[] { method, result, getClientConnection() });
+	protected <T> void pushEvent(PushEventType event, T result, String node) {
+		dispatcher.publish(Topic.topic(node), new Object[] { event, result, getClientConnection() });
 	}
 
 	/**
@@ -370,22 +370,12 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	protected void removeSubscriber() {
 		dispatcher.unsubscribe((Subscriber<Object[]>) getClientConnection());
 	}
-
+	
 	/**
-	 * Return method of this object. Neede for push methods
-	 * 
-	 * @param name
-	 * @param response
-	 * @return
+	 * For removing errors
+	 * @param event
 	 */
-	protected Method getMethod(String name, Class<?> response) {
-		try {
-			return getClass().getMethod(name, response, String.class);
-		} catch (SecurityException e) {
-			throw new RuntimeException(e);
-		} catch (NoSuchMethodException e) {
-			throw new RuntimeException(e);
-		}
+	public <T> void handleEvent(PushEventType event) {
 	}
 
 	/**
