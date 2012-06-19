@@ -233,7 +233,6 @@ public class GnisioPipelineHandler extends SimpleChannelUpstreamHandler {
 		sessCookie.setPath("/");
 		sessCookie.setDomain(hostName);
 		sessCookie.setMaxAge(-1);
-		sessCookie.setVersion(1);
 		
 		// Set cookie in response
 		CookieEncoder cookEncoder = new CookieEncoder(false);

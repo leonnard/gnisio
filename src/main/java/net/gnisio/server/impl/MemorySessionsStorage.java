@@ -70,12 +70,14 @@ public class MemorySessionsStorage implements SessionsStorage {
 	@Override
 	public Session createSession() {
 		DefaultSession sess = new DefaultSession( SocketIOManager.generateString(64) );
+		sessionsMap.put(sess.getId(), sess);
 		return sess;
 	}
 
 	@Override
 	public void resetClearTimer(String id) {
-		sessionsMap.get(id).resetClearTimer();
+		if(sessionsMap.containsKey(id))
+			sessionsMap.get(id).resetClearTimer();
 	}
 
 }

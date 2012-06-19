@@ -22,6 +22,10 @@ import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This is main abstraction for creating your own server server.
+ * @author c58
+ */
 public abstract class AbstractGnisioServer {
 	private static final Logger LOG = LoggerFactory.getLogger(AbstractGnisioServer.class);
 

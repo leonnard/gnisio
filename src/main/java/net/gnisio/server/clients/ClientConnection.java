@@ -113,6 +113,13 @@ public interface ClientConnection {
 	 */
 	boolean isInitialized();
 
+	/**
+	 * Initialize RPC session. Without this initialization, any push messages
+	 * can't send to client and ignored.
+	 * 
+	 * @param strongName
+	 * @param moduleName
+	 */
 	void initializeRPCSession(String strongName, String moduleName);
 
 	String getStrongName();
