@@ -8,6 +8,8 @@
             <when-type-assignable class="net.gnisio.shared.SocketIOService" />
         </any>
     </generate-with>
+    
+    <script src="/socket.io/socket.io.js"/>
 
     <source path="client" />
     <source path="shared" />
