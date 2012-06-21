@@ -40,8 +40,6 @@ public class SocketIOManager {
 	public static Option option = new Option();
 	public static Map<String, Transport> transports = new HashMap<String, Transport>();
 	private static RandomBase64Generator randomGenerator = new RandomBase64Generator();
-	
-	private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(10);
 
 	// Initialize transports
 	static {
@@ -61,6 +59,7 @@ public class SocketIOManager {
 		public String transports = "htmlfile,websocket,jsonp-polling,xhr-polling";
 		public String socketio_namespace = "socket.io";
 		public long session_timeout = 600;
+		public int sheduler_threads = 3;
 
 		{
 			ResourceBundle bundle = ResourceBundle.getBundle("socketio");
@@ -74,8 +73,14 @@ public class SocketIOManager {
 			transports = bundle.getString("transports");
 			socketio_namespace = bundle.getString("socketio_namespace");
 			session_timeout = Integer.parseInt(bundle.getString("session_timeout"));
+			sheduler_threads = Integer.parseInt(bundle.getString("sheduler_threads"));
 		}
 	}
+	
+	/**
+	 * Initialize scheduler
+	 */
+	private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool( option.sheduler_threads );
 
 	/**
 	 * Return handshake template with some oprions of socket.io
