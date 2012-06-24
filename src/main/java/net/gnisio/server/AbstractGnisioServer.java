@@ -1,29 +1,43 @@
 package net.gnisio.server;
 
 import static org.jboss.netty.channel.Channels.pipeline;
+import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
 
+import java.io.FileInputStream;
 import java.net.InetSocketAddress;
+import java.security.KeyStore;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 
 import net.gnisio.server.clients.ClientsStorage;
 import net.gnisio.server.impl.DefaultRequestProcessorsCollection;
 import net.gnisio.server.impl.MemoryClientsStorage;
 import net.gnisio.server.impl.MemorySessionsStorage;
 import net.gnisio.server.processors.RequestProcessorsCollection;
+import net.gnisio.server.transports.WebSocketTransport;
 
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
 import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
+import org.jboss.netty.handler.ssl.SslHandler;
+import org.jboss.netty.handler.stream.ChunkedWriteHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * This is main abstraction for creating your own server server.
+ * 
  * @author c58
  */
 public abstract class AbstractGnisioServer {
@@ -31,6 +45,7 @@ public abstract class AbstractGnisioServer {
 
 	private ServerBootstrap bootstrap;
 	private Channel serverChannel;
+	private SSLContext sslContext;
 
 	public void start(int port) throws Exception {
 		start("localhost", port);
@@ -47,25 +62,40 @@ public abstract class AbstractGnisioServer {
 
 		// Make remote service
 		final AbstractRemoteService remoteService = createRemoteService(sessionsStorage, clientsStorage);
-		remoteService.init( sessionsStorage );
+		remoteService.init(sessionsStorage);
 
 		// Create bootstrap
-		bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(Executors.newCachedThreadPool(),
-				Executors.newCachedThreadPool()));
+		ExecutorService bossExec = new OrderedMemoryAwareThreadPoolExecutor(1, 400000000, 2000000000, 60, TimeUnit.SECONDS);
+		ExecutorService ioExec = new OrderedMemoryAwareThreadPoolExecutor(4, 400000000, 2000000000, 60, TimeUnit.SECONDS);
+		bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(bossExec, ioExec,  4 ));
 
 		// Set up the event pipeline factory.
 		bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
 			@Override
 			public ChannelPipeline getPipeline() throws Exception {
 				ChannelPipeline pipeline = pipeline();
+
+				// If SSL enabled
+				if (sslContext != null) {
+					SSLEngine engine = sslContext.createSSLEngine();
+					engine.setUseClientMode(false);
+					pipeline.addLast("ssl", new SslHandler(engine));
+				}
+
+				// Set handlers
 				pipeline.addLast("decoder", new HttpRequestDecoder());
 				pipeline.addLast("aggregator", new HttpChunkAggregator(65536));
 				pipeline.addLast("encoder", new HttpResponseEncoder());
+				pipeline.addLast("chunkedWriter", new ChunkedWriteHandler());
 				pipeline.addLast("handler", new GnisioPipelineHandler(sessionsStorage, clientsStorage,
 						requestProcessors, remoteService, host));
 				return pipeline;
 			}
 		});
+		
+		// Other options
+		bootstrap.setOption("backlog", 500);
+		bootstrap.setOption("connectTimeoutMillis", 10000);
 
 		// Prepare request processors
 		createRequestProcessors(requestProcessors);
@@ -74,6 +104,13 @@ public abstract class AbstractGnisioServer {
 		this.serverChannel = bootstrap.bind(new InetSocketAddress(host, port));
 
 		LOG.info("Server Started at port [" + port + "]");
+	}
+	
+	/**
+	 * Stop the server
+	 */
+	public void stop() {
+		serverChannel.close();
 	}
 
 	/**
@@ -125,5 +162,47 @@ public abstract class AbstractGnisioServer {
 	protected RequestProcessorsCollection createRequestProcessorsCollection(SessionsStorage sessionsStorage,
 			ClientsStorage clientsStorage) {
 		return new DefaultRequestProcessorsCollection(sessionsStorage, clientsStorage);
+	}
+
+	protected void setSSLEnabled(String certPath, String certPass) {
+		setSSLEnabled(certPath, certPass, "SunX509");
+	}
+
+	/**
+	 * Enable SSL support
+	 * 
+	 * @param certPath
+	 * @param certPass
+	 * @param algorithm
+	 */
+	protected void setSSLEnabled(String certPath, String certPass, String algorithm) {
+		try {
+			SSLContext serverContext;
+			try {
+				KeyStore ks = KeyStore.getInstance("JKS");
+				FileInputStream fin = new FileInputStream(certPath);
+				ks.load(fin, certPass.toCharArray());
+
+				// Set up key manager factory to use our key store
+				// Assume key password is the same as the key store file
+				// password
+				KeyManagerFactory kmf = KeyManagerFactory.getInstance(algorithm);
+				kmf.init(ks, certPass.toCharArray());
+
+				// Initialise the SSLContext to work with our key managers.
+				serverContext = SSLContext.getInstance("TLS");
+				serverContext.init(kmf.getKeyManagers(), null, null);
+			} catch (Exception e) {
+				throw new Error("Failed to initialize the server-side SSLContext", e);
+			}
+
+			sslContext = serverContext;
+			
+			// FIXME: It's not good
+			WebSocketTransport.setSSL( true );
+		} catch (Exception ex) {
+			LOG.error("Error initializing SslContextManager. " + ex.getMessage(), ex);
+			System.exit(1);
+		}
 	}
 }

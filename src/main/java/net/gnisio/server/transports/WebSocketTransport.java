@@ -29,6 +29,15 @@ import org.slf4j.LoggerFactory;
 
 public class WebSocketTransport extends AbstractTransport {
 	private static final Logger LOG = LoggerFactory.getLogger(WebSocketTransport.class);
+	private static boolean useSSL = false;
+	
+	/**
+	 * FIXME: It's not good 
+	 * @param b
+	 */
+	public static void setSSL(boolean b) {
+		useSSL = b;
+	}
 
 	@Override
 	public void processRequest(ClientsStorage clientsStore, String clientId, HttpRequest req, HttpResponse resp,
@@ -128,7 +137,7 @@ public class WebSocketTransport extends AbstractTransport {
 	}
 
 	private String getWebSocketLocation(HttpRequest req) {
-		return "ws://" + req.getHeader(HttpHeaders.Names.HOST) + req.getUri();
+		return "ws"+useSSL+"://" + req.getHeader(HttpHeaders.Names.HOST) + req.getUri();
 	}
 
 	@Override
