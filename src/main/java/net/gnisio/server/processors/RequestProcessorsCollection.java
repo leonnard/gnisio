@@ -1,10 +1,7 @@
 package net.gnisio.server.processors;
 
 import net.gnisio.server.PacketsProcessor.Packet;
-import net.gnisio.server.SessionsStorage.Session;
-import net.gnisio.server.exceptions.StopRequestProcessing;
 
-import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 

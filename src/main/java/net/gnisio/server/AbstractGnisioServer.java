@@ -20,7 +20,6 @@ import net.gnisio.server.impl.DefaultServerContext;
 import net.gnisio.server.impl.MemoryClientsStorage;
 import net.gnisio.server.impl.MemorySessionsStorage;
 import net.gnisio.server.processors.RequestProcessorsCollection;
-import net.gnisio.server.transports.WebSocketTransport;
 
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
