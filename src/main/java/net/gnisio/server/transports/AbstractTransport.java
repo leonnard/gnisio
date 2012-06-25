@@ -18,9 +18,8 @@ public abstract class AbstractTransport implements Transport {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T extends ClientConnection> T getClientConnection(String clientId, Class<T> clazz,
-			ServerContext servContext) throws ClientConnectionNotExists,
-			ClientConnectionMismatch {
+	public <T extends ClientConnection> T getClientConnection(String clientId, Class<T> clazz, ServerContext servContext)
+			throws ClientConnectionNotExists, ClientConnectionMismatch {
 
 		ClientConnection client = servContext.getClientsStorage().getClient(clientId);
 
@@ -34,8 +33,8 @@ public abstract class AbstractTransport implements Transport {
 		} else if (client instanceof ConnectingClient) {
 			try {
 				// Create new instance of client
-				T newClient = clazz.getDeclaredConstructor(String.class, String.class, ServerContext.class,
-						AbstractRemoteService.class).newInstance(clientId, client.getSessionId(), servContext);
+				T newClient = clazz.getDeclaredConstructor(String.class, String.class, ServerContext.class)
+						.newInstance(clientId, client.getSessionId(), servContext);
 
 				// Set timers
 				client.stopCleanupTimers();
@@ -45,7 +44,8 @@ public abstract class AbstractTransport implements Transport {
 				servContext.getClientsStorage().addClient(newClient);
 				return newClient;
 			} catch (Exception e) {
-				throw new RuntimeException("Can't create instance of " + clazz.toString() + e.getStackTrace());
+				e.printStackTrace();
+				throw new RuntimeException("Can't create instance of " + clazz.toString());
 			}
 		} else
 			throw new ClientConnectionMismatch(client.getClass(), clazz);
