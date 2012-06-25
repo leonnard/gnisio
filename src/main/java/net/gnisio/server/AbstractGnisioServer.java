@@ -65,13 +65,13 @@ public abstract class AbstractGnisioServer {
 		// Make remote service
 		final AbstractRemoteService remoteService = createRemoteService(sessionsStorage, clientsStorage);
 		remoteService.init(sessionsStorage);
-		
+
 		// Create server context
-		servContext = createServerContext(sessionsStorage, clientsStorage,
-				requestProcessors, remoteService, host, port, sslContext != null);
+		servContext = createServerContext(sessionsStorage, clientsStorage, requestProcessors, remoteService, host,
+				port, sslContext != null);
 
 		// Make packet processor
-		final PacketsProcessor packetsProcessor = createPacketsProcessor( servContext );
+		final PacketsProcessor packetsProcessor = createPacketsProcessor(servContext);
 
 		// Create bootstrap
 		ExecutorService bossExec = new OrderedMemoryAwareThreadPoolExecutor(1, 400000000, 2000000000, 60,
@@ -98,7 +98,7 @@ public abstract class AbstractGnisioServer {
 				pipeline.addLast("aggregator", new HttpChunkAggregator(65536));
 				pipeline.addLast("encoder", new HttpResponseEncoder());
 				pipeline.addLast("chunkedWriter", new ChunkedWriteHandler());
-				pipeline.addLast("handler", new GnisioPipelineHandler( packetsProcessor ));
+				pipeline.addLast("handler", new GnisioPipelineHandler(packetsProcessor));
 				return pipeline;
 			}
 		});
@@ -118,6 +118,7 @@ public abstract class AbstractGnisioServer {
 
 	/**
 	 * Override this method for making your own server context
+	 * 
 	 * @param sessionsStorage
 	 * @param clientsStorage
 	 * @param requestProcessors
@@ -130,12 +131,16 @@ public abstract class AbstractGnisioServer {
 	protected ServerContext createServerContext(SessionsStorage sessionsStorage, ClientsStorage clientsStorage,
 			RequestProcessorsCollection requestProcessors, AbstractRemoteService remoteService, String host, int port,
 			boolean useSSL) {
-		return new DefaultServerContext(sessionsStorage, clientsStorage,
-				remoteService, requestProcessors, useSSL, host, port);
+		return new DefaultServerContext(sessionsStorage, clientsStorage, remoteService, requestProcessors, useSSL,
+				host, port);
 	}
 
 	/**
-	 * Override this method for creating some other packets processor
+	 * Override this method for creating some other packets processor. Default
+	 * packets processor works in 8 threads. This number of threads used because
+	 * any client in general use 2 connection (client-server and server-client),
+	 * and one of this thread can block other one. For example when one thread
+	 * send frame and in this moment other thread set client as connected.
 	 * 
 	 * @param sessionsStorage
 	 * @param clientsStorage
@@ -145,7 +150,7 @@ public abstract class AbstractGnisioServer {
 	 * @return
 	 */
 	protected PacketsProcessor createPacketsProcessor(ServerContext servContext) {
-		return new DefaultPacketsProcessor(servContext, 4);
+		return new DefaultPacketsProcessor(servContext, 8);
 	}
 
 	/**
