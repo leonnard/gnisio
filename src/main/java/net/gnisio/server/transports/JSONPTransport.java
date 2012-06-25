@@ -2,8 +2,7 @@ package net.gnisio.server.transports;
 
 import java.util.List;
 
-import net.gnisio.server.AbstractRemoteService;
-import net.gnisio.server.clients.ClientsStorage;
+import net.gnisio.server.PacketsProcessor.ServerContext;
 import net.gnisio.server.clients.JSONPClient;
 import net.gnisio.server.clients.XHRClient;
 import net.gnisio.server.exceptions.ClientConnectionMismatch;
@@ -15,9 +14,8 @@ import org.jboss.netty.util.CharsetUtil;
 public class JSONPTransport extends XHRTransport {
 
 	@Override
-	protected XHRClient doGetClientConnection(String clientId, ClientsStorage clientsStore,
-			AbstractRemoteService remoteService) throws ClientConnectionNotExists, ClientConnectionMismatch {
-		return getClientConnection(clientId, clientsStore, remoteService, JSONPClient.class);
+	protected XHRClient doGetClientConnection(String clientId, ServerContext servContext) throws ClientConnectionNotExists, ClientConnectionMismatch {
+		return getClientConnection(clientId, JSONPClient.class, null);
 	}
 
 	@Override

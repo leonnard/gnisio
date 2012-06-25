@@ -2,7 +2,7 @@ package net.gnisio.server.clients;
 
 import java.util.List;
 
-import net.gnisio.server.AbstractRemoteService;
+import net.gnisio.server.PacketsProcessor.ServerContext;
 import net.gnisio.server.SocketIOFrame;
 import net.gnisio.server.SocketIOManager;
 
@@ -17,8 +17,8 @@ import com.google.gwt.thirdparty.guava.common.base.Charsets;
 public class HTMLClient extends XHRClient {
 	private final static String TEMPLATE = "<script>_('%s');</script>";
 
-	public HTMLClient(String id, String sessionId, ClientsStorage clientsStorage, AbstractRemoteService remoteService) {
-		super(id, sessionId, clientsStorage, remoteService);
+	public HTMLClient(String id, String sessionId, ServerContext servContext) {
+		super(id, sessionId, servContext);
 	}
 
 	@Override

@@ -2,8 +2,7 @@ package net.gnisio.server.transports;
 
 import java.util.Arrays;
 
-import net.gnisio.server.AbstractRemoteService;
-import net.gnisio.server.clients.ClientsStorage;
+import net.gnisio.server.PacketsProcessor.ServerContext;
 import net.gnisio.server.clients.HTMLClient;
 import net.gnisio.server.clients.XHRClient;
 import net.gnisio.server.exceptions.ClientConnectionMismatch;
@@ -31,10 +30,8 @@ public class HTMLTransport extends XHRTransport {
 	 * Return HTML client instance
 	 */
 	@Override
-	protected XHRClient doGetClientConnection(String clientId, ClientsStorage clientsStore,
-			AbstractRemoteService remoteService) throws ClientConnectionNotExists, ClientConnectionMismatch {
-
-		return getClientConnection(clientId, clientsStore, remoteService, HTMLClient.class);
+	protected XHRClient doGetClientConnection(String clientId, ServerContext servercOntext) throws ClientConnectionNotExists, ClientConnectionMismatch {
+		return getClientConnection(clientId, HTMLClient.class, null);
 	}
 
 	@Override

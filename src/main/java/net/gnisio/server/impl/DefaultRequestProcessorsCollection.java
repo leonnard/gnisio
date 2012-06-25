@@ -7,13 +7,13 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import net.gnisio.server.PacketsProcessor.Packet;
 import net.gnisio.server.SessionsStorage;
 import net.gnisio.server.clients.ClientsStorage;
 import net.gnisio.server.exceptions.StopRequestProcessing;
 import net.gnisio.server.processors.RequestProcessor;
 import net.gnisio.server.processors.RequestProcessorsCollection;
 
-import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.slf4j.Logger;
@@ -71,34 +71,32 @@ public class DefaultRequestProcessorsCollection implements RequestProcessorsColl
 	}
 
 	@Override
-	public void invokeRequestPreProcessor(HttpRequest req, HttpResponse resp, ChannelHandlerContext ctx,
-			String sessionId) throws Exception {
+	public void invokeRequestPreProcessor(HttpRequest req, HttpResponse resp,Packet packet) throws Exception {
 		RequestProcessor proc = getAppropriateProcessor(preprocessors, req.getUri());
 
 		try {
 			if (proc != null)
-				proc.processRequest(req, resp, ctx);
+				proc.processRequest(req, resp, packet.getCtx());
 		} catch (Exception e) {
 			throw new StopRequestProcessing();
 		}
 	}
 
 	@Override
-	public void invokeRequestProcessor(HttpRequest req, HttpResponse resp, ChannelHandlerContext ctx, String sessionId)
+	public void invokeRequestProcessor(HttpRequest req, HttpResponse resp, Packet packet)
 			throws Exception {
 		RequestProcessor proc = getAppropriateProcessor(processors, req.getUri());
 
 		if (proc != null)
-			proc.processRequest(req, resp, ctx);
+			proc.processRequest(req, resp, packet.getCtx());
 	}
 
 	@Override
-	public void invokeRequestPostProcessor(HttpRequest req, HttpResponse resp, ChannelHandlerContext ctx,
-			String sessionId) throws Exception {
+	public void invokeRequestPostProcessor(HttpRequest req, HttpResponse resp, Packet packet) throws Exception {
 		RequestProcessor proc = getAppropriateProcessor(postprocessors, req.getUri());
 
 		if (proc != null)
-			proc.processRequest(req, resp, ctx);
+			proc.processRequest(req, resp, packet.getCtx());
 	}
 
 	@Override

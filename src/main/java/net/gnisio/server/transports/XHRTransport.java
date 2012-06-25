@@ -3,12 +3,12 @@ package net.gnisio.server.transports;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.gnisio.server.AbstractRemoteService;
+import net.gnisio.server.PacketsProcessor.Packet;
+import net.gnisio.server.PacketsProcessor.ServerContext;
 import net.gnisio.server.SocketIOFrame;
 import net.gnisio.server.SocketIOManager;
 import net.gnisio.server.clients.ClientConnection;
 import net.gnisio.server.clients.ClientConnection.State;
-import net.gnisio.server.clients.ClientsStorage;
 import net.gnisio.server.clients.XHRClient;
 import net.gnisio.server.exceptions.ClientConnectionMismatch;
 import net.gnisio.server.exceptions.ClientConnectionNotExists;
@@ -27,17 +27,17 @@ public class XHRTransport extends AbstractTransport {
 	protected static final Logger LOG = LoggerFactory.getLogger(XHRTransport.class);
 
 	@Override
-	public void processRequest(ClientsStorage clientsStore, String clientId, HttpRequest req, HttpResponse resp,
-			ChannelHandlerContext ctx, AbstractRemoteService remoteService) throws ClientConnectionNotExists,
+	public void processRequest(HttpRequest req, HttpResponse resp, String clientId, Packet packet,
+			ServerContext servContext) throws ClientConnectionNotExists,
 			ClientConnectionMismatch {
 
 		// Process request-response
 		if (req.getMethod() == HttpMethod.POST)
-			processPostRequest(clientsStore, clientId, req, resp, ctx, remoteService);
+			processPostRequest(clientId, req, resp, packet, servContext);
 
 		// Process server-push
 		else if (req.getMethod() == HttpMethod.GET)
-			processGetRequest(clientsStore, clientId, req, resp, ctx, remoteService);
+			processGetRequest(clientId, req, resp, packet, servContext);
 
 		// Other requests not supported
 		else {
@@ -62,18 +62,19 @@ public class XHRTransport extends AbstractTransport {
 	 * @throws ClientConnectionNotExists
 	 * @throws ClientConnectionMismatch
 	 */
-	private void processPostRequest(ClientsStorage clientsStore, String clientId, HttpRequest req, HttpResponse resp,
-			ChannelHandlerContext ctx, AbstractRemoteService remoteService) throws ClientConnectionNotExists,
+	private void processPostRequest(String clientId, HttpRequest req, HttpResponse resp,
+			Packet packet, ServerContext servContext) throws ClientConnectionNotExists,
 			ClientConnectionMismatch {
 
 		LOG.debug("Process XHR request-response (POST)");
 
 		try {
 			// Try to get client connection
-			XHRClient client = doGetClientConnection(clientId, clientsStore, remoteService);
+			XHRClient client = doGetClientConnection(clientId, servContext);
+			packet.getContext().setClientConnection( client );
 
 			// Set in remote service
-			remoteService.setClientConnection(client);
+			servContext.getRemoteService().setClientConnection(client);
 
 			// Decode received socket.io payload
 			List<SocketIOFrame> receivedFrames = SocketIOFrame.decodePayload(decodePostData(req.getContent().toString(
@@ -83,7 +84,7 @@ public class XHRTransport extends AbstractTransport {
 			List<SocketIOFrame> resultFrames = new ArrayList<SocketIOFrame>();
 
 			for (SocketIOFrame frame : receivedFrames) {
-				SocketIOFrame rf = processSocketIOFrame(frame, client, clientsStore, remoteService);
+				SocketIOFrame rf = processSocketIOFrame(frame, null, null);
 
 				if (rf != null)
 					resultFrames.add(rf);
@@ -94,11 +95,11 @@ public class XHRTransport extends AbstractTransport {
 				client.sendFrames(resultFrames);
 
 			// Send empty response
-			SocketIOManager.sendHttpResponse(ctx, req, resp);
+			SocketIOManager.sendHttpResponse(packet.getCtx(), req, resp);
 
 		} finally {
 			// Unset client from remote service
-			remoteService.clearClientConnection();
+			servContext.getRemoteService().clearClientConnection();
 		}
 	}
 
@@ -115,9 +116,8 @@ public class XHRTransport extends AbstractTransport {
 	/**
 	 * Override this method for getting some extends of XHRClient
 	 */
-	protected XHRClient doGetClientConnection(String clientId, ClientsStorage clientsStore,
-			AbstractRemoteService remoteService) throws ClientConnectionNotExists, ClientConnectionMismatch {
-		return getClientConnection(clientId, clientsStore, remoteService, XHRClient.class);
+	protected XHRClient doGetClientConnection(String clientId, ServerContext servContext) throws ClientConnectionNotExists, ClientConnectionMismatch {
+		return getClientConnection(clientId, XHRClient.class, null);
 	}
 
 	/**
@@ -132,19 +132,20 @@ public class XHRTransport extends AbstractTransport {
 	 * @throws ClientConnectionMismatch
 	 * @throws ClientConnectionNotExists
 	 */
-	private void processGetRequest(ClientsStorage clientsStore, String clientId, HttpRequest req, HttpResponse resp,
-			ChannelHandlerContext ctx, AbstractRemoteService remoteService) throws ClientConnectionNotExists,
+	private void processGetRequest(String clientId, HttpRequest req, HttpResponse resp,
+			Packet packet, ServerContext servContext) throws ClientConnectionNotExists,
 			ClientConnectionMismatch {
 		LOG.debug("Process XHR server-push (GET)");
 
 		try {
 			// Try to get client connection
-			XHRClient client = doGetClientConnection(clientId, clientsStore, remoteService);
+			XHRClient client = doGetClientConnection(clientId, servContext);
+			packet.getContext().setClientConnection( client );
 
-			remoteService.setClientConnection(client);
+			servContext.getRemoteService().setClientConnection(client);
 
 			// Prepare connection (needed for htmlfile transport)
-			doPrepareConnection(ctx, client, resp);
+			doPrepareConnection(packet.getCtx(), client, resp);
 
 			List<SocketIOFrame> buff = null;
 			synchronized (client) {
@@ -162,7 +163,7 @@ public class XHRTransport extends AbstractTransport {
 				}
 
 				// Set all things for connected client
-				client.setCtx(ctx);
+				client.setCtx(packet.getCtx());
 				client.setRequestFields(req, resp);
 				client.setState(ClientConnection.State.CONNECTED);
 			}
@@ -173,7 +174,7 @@ public class XHRTransport extends AbstractTransport {
 
 		} finally {
 			// Unset client from remote service
-			remoteService.clearClientConnection();
+			servContext.getRemoteService().clearClientConnection();
 		}
 	}
 
@@ -194,8 +195,8 @@ public class XHRTransport extends AbstractTransport {
 	}
 
 	@Override
-	public void processWebSocketFrame(ClientsStorage clientsStorage, ClientConnection currentClient,
-			WebSocketFrame msg, ChannelHandlerContext ctx, AbstractRemoteService remoteService)
+	public void processWebSocketFrame(WebSocketFrame msg, Packet packet,
+			ServerContext sercContext)
 			throws ClientConnectionNotExists, ClientConnectionMismatch {
 		// do nothing...
 	}

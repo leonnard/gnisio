@@ -1,21 +1,22 @@
 package net.gnisio.server;
 
 import static org.jboss.netty.channel.Channels.pipeline;
-import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
 
 import java.io.FileInputStream;
 import java.net.InetSocketAddress;
 import java.security.KeyStore;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
+import net.gnisio.server.PacketsProcessor.ServerContext;
 import net.gnisio.server.clients.ClientsStorage;
+import net.gnisio.server.impl.DefaultPacketsProcessor;
 import net.gnisio.server.impl.DefaultRequestProcessorsCollection;
+import net.gnisio.server.impl.DefaultServerContext;
 import net.gnisio.server.impl.MemoryClientsStorage;
 import net.gnisio.server.impl.MemorySessionsStorage;
 import net.gnisio.server.processors.RequestProcessorsCollection;
@@ -23,13 +24,13 @@ import net.gnisio.server.transports.WebSocketTransport;
 
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
 import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
 import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
+import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.stream.ChunkedWriteHandler;
 import org.slf4j.Logger;
@@ -43,9 +44,11 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractGnisioServer {
 	private static final Logger LOG = LoggerFactory.getLogger(AbstractGnisioServer.class);
 
+	// for stopping the server
 	private ServerBootstrap bootstrap;
 	private Channel serverChannel;
 	private SSLContext sslContext;
+	private ServerContext servContext;
 
 	public void start(int port) throws Exception {
 		start("localhost", port);
@@ -63,11 +66,20 @@ public abstract class AbstractGnisioServer {
 		// Make remote service
 		final AbstractRemoteService remoteService = createRemoteService(sessionsStorage, clientsStorage);
 		remoteService.init(sessionsStorage);
+		
+		// Create server context
+		servContext = createServerContext(sessionsStorage, clientsStorage,
+				requestProcessors, remoteService, host, port, sslContext != null);
+
+		// Make packet processor
+		final PacketsProcessor packetsProcessor = createPacketsProcessor( servContext );
 
 		// Create bootstrap
-		ExecutorService bossExec = new OrderedMemoryAwareThreadPoolExecutor(1, 400000000, 2000000000, 60, TimeUnit.SECONDS);
-		ExecutorService ioExec = new OrderedMemoryAwareThreadPoolExecutor(4, 400000000, 2000000000, 60, TimeUnit.SECONDS);
-		bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(bossExec, ioExec,  4 ));
+		ExecutorService bossExec = new OrderedMemoryAwareThreadPoolExecutor(1, 400000000, 2000000000, 60,
+				TimeUnit.SECONDS);
+		ExecutorService ioExec = new OrderedMemoryAwareThreadPoolExecutor(4, 400000000, 2000000000, 60,
+				TimeUnit.SECONDS);
+		bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(bossExec, ioExec, 4));
 
 		// Set up the event pipeline factory.
 		bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
@@ -87,12 +99,11 @@ public abstract class AbstractGnisioServer {
 				pipeline.addLast("aggregator", new HttpChunkAggregator(65536));
 				pipeline.addLast("encoder", new HttpResponseEncoder());
 				pipeline.addLast("chunkedWriter", new ChunkedWriteHandler());
-				pipeline.addLast("handler", new GnisioPipelineHandler(sessionsStorage, clientsStorage,
-						requestProcessors, remoteService, host));
+				pipeline.addLast("handler", new GnisioPipelineHandler( packetsProcessor ));
 				return pipeline;
 			}
 		});
-		
+
 		// Other options
 		bootstrap.setOption("backlog", 500);
 		bootstrap.setOption("connectTimeoutMillis", 10000);
@@ -103,9 +114,41 @@ public abstract class AbstractGnisioServer {
 		// Bind and start to accept incoming connections.
 		this.serverChannel = bootstrap.bind(new InetSocketAddress(host, port));
 
-		LOG.info("Server Started at port [" + port + "]");
+		LOG.info("Server Started at host [" + host + "] and port [" + port + "]");
 	}
-	
+
+	/**
+	 * Override this method for making your own server context
+	 * @param sessionsStorage
+	 * @param clientsStorage
+	 * @param requestProcessors
+	 * @param remoteService
+	 * @param host
+	 * @param port
+	 * @param useSSL
+	 * @return
+	 */
+	protected ServerContext createServerContext(SessionsStorage sessionsStorage, ClientsStorage clientsStorage,
+			RequestProcessorsCollection requestProcessors, AbstractRemoteService remoteService, String host, int port,
+			boolean useSSL) {
+		return new DefaultServerContext(sessionsStorage, clientsStorage,
+				remoteService, requestProcessors, useSSL, host, port);
+	}
+
+	/**
+	 * Override this method for creating some other packets processor
+	 * 
+	 * @param sessionsStorage
+	 * @param clientsStorage
+	 * @param requestProcessors
+	 * @param remoteService
+	 * @param host
+	 * @return
+	 */
+	protected PacketsProcessor createPacketsProcessor(ServerContext servContext) {
+		return new DefaultPacketsProcessor(servContext, 4);
+	}
+
 	/**
 	 * Stop the server
 	 */
@@ -197,9 +240,6 @@ public abstract class AbstractGnisioServer {
 			}
 
 			sslContext = serverContext;
-			
-			// FIXME: It's not good
-			WebSocketTransport.setSSL( true );
 		} catch (Exception ex) {
 			LOG.error("Error initializing SslContextManager. " + ex.getMessage(), ex);
 			System.exit(1);

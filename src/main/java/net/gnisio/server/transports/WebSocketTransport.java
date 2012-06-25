@@ -2,17 +2,17 @@ package net.gnisio.server.transports;
 
 import java.util.List;
 
-import net.gnisio.server.AbstractRemoteService;
+import net.gnisio.server.PacketsProcessor.ConnectionContext;
+import net.gnisio.server.PacketsProcessor.Packet;
+import net.gnisio.server.PacketsProcessor.ServerContext;
 import net.gnisio.server.SocketIOFrame;
 import net.gnisio.server.clients.ClientConnection;
 import net.gnisio.server.clients.ClientConnection.State;
-import net.gnisio.server.clients.ClientsStorage;
 import net.gnisio.server.clients.WebSocketClient;
 import net.gnisio.server.exceptions.ClientConnectionMismatch;
 import net.gnisio.server.exceptions.ClientConnectionNotExists;
 
 import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 import org.jboss.netty.handler.codec.http.HttpRequest;
@@ -29,20 +29,10 @@ import org.slf4j.LoggerFactory;
 
 public class WebSocketTransport extends AbstractTransport {
 	private static final Logger LOG = LoggerFactory.getLogger(WebSocketTransport.class);
-	private static boolean useSSL = false;
-	
-	/**
-	 * FIXME: It's not good 
-	 * @param b
-	 */
-	public static void setSSL(boolean b) {
-		useSSL = b;
-	}
 
 	@Override
-	public void processRequest(ClientsStorage clientsStore, String clientId, HttpRequest req, HttpResponse resp,
-			ChannelHandlerContext ctx, AbstractRemoteService remoteService) throws ClientConnectionNotExists,
-			ClientConnectionMismatch {
+	public void processRequest(HttpRequest req, HttpResponse resp, String clientId, Packet packet,
+			ServerContext servContext) throws ClientConnectionNotExists, ClientConnectionMismatch {
 
 		// Only GET request supported
 		if (req.getMethod() == HttpMethod.GET) {
@@ -50,21 +40,21 @@ public class WebSocketTransport extends AbstractTransport {
 
 			try {
 				// Try to get client connection
-				WebSocketClient client = getClientConnection(clientId, clientsStore, remoteService,
-						WebSocketClient.class);
-
-				remoteService.setClientConnection(client);
+				WebSocketClient client = getClientConnection(clientId, WebSocketClient.class, servContext);
+				packet.getContext().setClientConnection( client );
+				servContext.getRemoteService().setClientConnection(client);
 
 				// Handshaker
 				WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(
-						getWebSocketLocation(req), null, false);
+						getWebSocketLocation(req, servContext.isSSL()), null, false);
 				WebSocketServerHandshaker handshaker = wsFactory.newHandshaker(req);
-				if (handshaker == null) {
-					wsFactory.sendUnsupportedWebSocketVersionResponse(ctx.getChannel());
-				} else {
-					handshaker.handshake(ctx.getChannel(), req).addListener(
+				
+				if (handshaker == null) 
+					wsFactory.sendUnsupportedWebSocketVersionResponse(packet.getCtx().getChannel());
+				
+				else 
+					handshaker.handshake(packet.getCtx().getChannel(), req).addListener(
 							WebSocketServerHandshaker.HANDSHAKE_LISTENER);
-				}
 
 				// Set connection channel and handshaker in client connection
 				// object
@@ -72,7 +62,7 @@ public class WebSocketTransport extends AbstractTransport {
 				synchronized (client) {
 					// Set handshaker in client
 					client.setHandshaker(handshaker);
-					client.setCtx(ctx);
+					client.setCtx(packet.getCtx());
 					client.setState(State.CONNECTED);
 
 					// Flush buffer if it's not empty
@@ -90,29 +80,29 @@ public class WebSocketTransport extends AbstractTransport {
 				client.sendFrame(SocketIOFrame.makeConnect());
 
 			} finally {
-				remoteService.clearClientConnection();
+				servContext.getRemoteService().clearClientConnection();
 			}
 
 		} else
-			ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
+			packet.getCtx().getChannel().close().addListener(ChannelFutureListener.CLOSE);
 	}
 
 	@Override
-	public void processWebSocketFrame(ClientsStorage clientsStorage, ClientConnection client, WebSocketFrame frame,
-			ChannelHandlerContext ctx, AbstractRemoteService remoteService) throws ClientConnectionNotExists,
-			ClientConnectionMismatch {
+	public void processWebSocketFrame(WebSocketFrame frame, Packet packet, ServerContext servContext)
+			throws ClientConnectionNotExists, ClientConnectionMismatch {
 
 		try {
 			// Set current client in thread-local
-			remoteService.setClientConnection(client);
+			ClientConnection client  = packet.getContext().getClientConnection();
+			servContext.getRemoteService().setClientConnection( client );
 
 			// Check for closing frame
 			if (frame instanceof CloseWebSocketFrame) {
 				client.setState(State.DISCONNECTED);
-				((WebSocketClient) client).getHandshaker().close(ctx.getChannel(), (CloseWebSocketFrame) frame);
+				((WebSocketClient) client).getHandshaker().close(packet.getCtx().getChannel(), (CloseWebSocketFrame) frame);
 				return;
 			} else if (frame instanceof PingWebSocketFrame) {
-				ctx.getChannel().write(new PongWebSocketFrame(frame.getBinaryData()));
+				packet.getCtx().getChannel().write(new PongWebSocketFrame(frame.getBinaryData()));
 				return;
 			} else if (!(frame instanceof TextWebSocketFrame)) {
 				throw new UnsupportedOperationException(String.format("%s frame types not supported", frame.getClass()
@@ -126,18 +116,18 @@ public class WebSocketTransport extends AbstractTransport {
 			SocketIOFrame socketioFrame = SocketIOFrame.decodePacket(request);
 
 			// Process frame and get result
-			socketioFrame = processSocketIOFrame(socketioFrame, client, clientsStorage, remoteService);
+			socketioFrame = processSocketIOFrame(socketioFrame, client, servContext);
 
 			// Send result
 			if (socketioFrame != null)
 				client.sendFrame(socketioFrame);
 		} finally {
-			remoteService.clearClientConnection();
+			servContext.getRemoteService().clearClientConnection();
 		}
 	}
 
-	private String getWebSocketLocation(HttpRequest req) {
-		return "ws"+useSSL+"://" + req.getHeader(HttpHeaders.Names.HOST) + req.getUri();
+	private String getWebSocketLocation(HttpRequest req, boolean useSSL) {
+		return "ws" + useSSL + "://" + req.getHeader(HttpHeaders.Names.HOST) + req.getUri();
 	}
 
 	@Override
@@ -145,12 +135,14 @@ public class WebSocketTransport extends AbstractTransport {
 		return "websocket";
 	}
 
-	public void handleDisconnect(ClientsStorage clientsStore, ClientConnection client,
-			AbstractRemoteService remoteService) throws ClientConnectionNotExists, ClientConnectionMismatch {
+	public void handleDisconnect(ConnectionContext connContext, ServerContext servContext)
+			throws ClientConnectionNotExists, ClientConnectionMismatch {
 
 		try {
+			ClientConnection client = connContext.getClientConnection();
+			
 			// Set current client in thread-local
-			remoteService.setClientConnection(client);
+			servContext.getRemoteService().setClientConnection( client );
 
 			// Stop tasks and setconnection state
 			client.stopCleanupTimers();
@@ -158,9 +150,9 @@ public class WebSocketTransport extends AbstractTransport {
 			client.setState(State.DISCONNECTED);
 
 			// Remove from clients store
-			clientsStore.removeClient(client);
+			servContext.getClientsStorage().removeClient( connContext.getClientConnection() );
 		} finally {
-			remoteService.clearClientConnection();
+			servContext.getRemoteService().clearClientConnection();
 		}
 	}
 

@@ -2,7 +2,7 @@ package net.gnisio.server.clients;
 
 import java.util.List;
 
-import net.gnisio.server.AbstractRemoteService;
+import net.gnisio.server.PacketsProcessor.ServerContext;
 import net.gnisio.server.SocketIOFrame;
 
 import org.jboss.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -14,9 +14,8 @@ public class WebSocketClient extends AbstractClient {
 	private static final Logger LOG = LoggerFactory.getLogger(WebSocketClient.class);
 	private WebSocketServerHandshaker handshaker;
 
-	public WebSocketClient(String id, String sessionId, ClientsStorage clientsStorage,
-			AbstractRemoteService remoteService) {
-		super(id, sessionId, clientsStorage, remoteService);
+	public WebSocketClient(String id, String sessionId, ServerContext servContext) {
+		super(id, sessionId, servContext);
 	}
 
 	public void setHandshaker(WebSocketServerHandshaker handshaker) {

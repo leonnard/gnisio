@@ -2,7 +2,7 @@ package net.gnisio.server.clients;
 
 import java.util.List;
 
-import net.gnisio.server.AbstractRemoteService;
+import net.gnisio.server.PacketsProcessor.ServerContext;
 import net.gnisio.server.SocketIOFrame;
 
 /**
@@ -13,9 +13,8 @@ import net.gnisio.server.SocketIOFrame;
  */
 public class ConnectingClient extends AbstractClient {
 
-	public ConnectingClient(String id, String sessionId, ClientsStorage clientsStorage,
-			AbstractRemoteService remoteService) {
-		super(id, sessionId, clientsStorage, remoteService);
+	public ConnectingClient(String id, String session, ServerContext servContext) {
+		super(id, session, servContext);
 	}
 
 	@Override

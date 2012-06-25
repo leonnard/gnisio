@@ -1,10 +1,10 @@
 package net.gnisio.server.transports;
 
 import net.gnisio.server.AbstractRemoteService;
+import net.gnisio.server.PacketsProcessor.ServerContext;
 import net.gnisio.server.SocketIOFrame;
 import net.gnisio.server.clients.ClientConnection;
 import net.gnisio.server.clients.ClientConnection.State;
-import net.gnisio.server.clients.ClientsStorage;
 import net.gnisio.server.clients.ConnectingClient;
 import net.gnisio.server.exceptions.ClientConnectionMismatch;
 import net.gnisio.server.exceptions.ClientConnectionNotExists;
@@ -18,11 +18,11 @@ public abstract class AbstractTransport implements Transport {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T extends ClientConnection> T getClientConnection(String clientId, ClientsStorage storage,
-			AbstractRemoteService remoteService, Class<T> clazz) throws ClientConnectionNotExists,
+	public <T extends ClientConnection> T getClientConnection(String clientId, Class<T> clazz,
+			ServerContext servContext) throws ClientConnectionNotExists,
 			ClientConnectionMismatch {
 
-		ClientConnection client = storage.getClient(clientId);
+		ClientConnection client = servContext.getClientsStorage().getClient(clientId);
 
 		// If null - not reserved by handshake
 		if (client == null)
@@ -34,16 +34,15 @@ public abstract class AbstractTransport implements Transport {
 		} else if (client instanceof ConnectingClient) {
 			try {
 				// Create new instance of client
-				T newClient = clazz.getDeclaredConstructor(String.class, String.class, ClientsStorage.class,
-						AbstractRemoteService.class).newInstance(clientId, client.getSessionId(), storage,
-						remoteService);
+				T newClient = clazz.getDeclaredConstructor(String.class, String.class, ServerContext.class,
+						AbstractRemoteService.class).newInstance(clientId, client.getSessionId(), servContext);
 
 				// Set timers
 				client.stopCleanupTimers();
 				newClient.resetCleanupTimers();
 
 				// Add new client to starage
-				storage.addClient(newClient);
+				servContext.getClientsStorage().addClient(newClient);
 				return newClient;
 			} catch (Exception e) {
 				throw new RuntimeException("Can't create instance of " + clazz.toString() + e.getStackTrace());
@@ -53,8 +52,7 @@ public abstract class AbstractTransport implements Transport {
 	}
 
 	@Override
-	public SocketIOFrame processSocketIOFrame(SocketIOFrame frame, ClientConnection client, ClientsStorage storage,
-			AbstractRemoteService remoteService) {
+	public SocketIOFrame processSocketIOFrame(SocketIOFrame frame, ClientConnection client, ServerContext servContext) {
 		SocketIOFrame resultFrame = null;
 
 		switch (frame.getFrameType()) {
@@ -72,7 +70,7 @@ public abstract class AbstractTransport implements Transport {
 			LOG.debug("Process MESSAGE frame");
 
 			// Process data by remote service
-			String result = remoteService.processPayload(frame.getData());
+			String result = servContext.getRemoteService().processPayload(frame.getData());
 
 			// On success make a MESSAGE frame
 			if (result != null)
@@ -83,7 +81,7 @@ public abstract class AbstractTransport implements Transport {
 			LOG.debug("Process DISCONNECT frame");
 
 			// Remove client from storage
-			storage.removeClient(client);
+			servContext.getClientsStorage().removeClient(client);
 
 			// Stop all tasks and close connection
 			client.stopCleanupTimers();

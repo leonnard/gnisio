@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 
-import net.gnisio.server.AbstractRemoteService;
+import net.gnisio.server.PacketsProcessor.ServerContext;
 import net.gnisio.server.SocketIOFrame;
 import net.gnisio.server.SocketIOManager;
 import net.gnisio.shared.PushEventType;
@@ -34,7 +34,7 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 	// Current state of client
 	private State state = State.DISCONNECTED;
 	private final String id;
-	private final String sessionId;
+	private final String session;
 
 	// Cleanup and heartbeat taskss
 	protected ScheduledFuture<?> cleanupTask;
@@ -42,8 +42,7 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 	protected ScheduledFuture<?> heartbeatTask;
 
 	// For removing myself
-	private final ClientsStorage clientsStorage;
-	private final AbstractRemoteService remoteService;
+	private final ServerContext servContext;
 
 	// Frames buffer
 	private List<SocketIOFrame> buffer = new ArrayList<SocketIOFrame>();
@@ -53,12 +52,10 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 	private String strongName;
 	private String moduleName;
 
-	public AbstractClient(String id, String sessionId, ClientsStorage clientsStorage,
-			AbstractRemoteService remoteService) {
-		this.clientsStorage = clientsStorage;
+	public AbstractClient(String id, String sessionId, ServerContext servContext) {
 		this.id = id;
-		this.sessionId = sessionId;
-		this.remoteService = remoteService;
+		this.session = sessionId;
+		this.servContext = servContext;
 	}
 
 	@Override
@@ -103,7 +100,7 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 
 	@Override
 	public String getSessionId() {
-		return sessionId;
+		return session;
 	}
 
 	@Override
@@ -128,7 +125,7 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 				if (ctx != null)
 					ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
 
-				clientsStorage.removeClient(AbstractClient.this);
+				servContext.getClientsStorage().removeClient(AbstractClient.this);
 			}
 		});
 
@@ -138,10 +135,10 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 				LOG.debug("Timeout HEARTBEAT. Set client as disconnected");
 
 				try {
-					remoteService.setClientConnection(AbstractClient.this);
+					servContext.getRemoteService().setClientConnection(AbstractClient.this);
 					setState(State.DISCONNECTED);
 				} finally {
-					remoteService.clearClientConnection();
+					servContext.getRemoteService().clearClientConnection();
 				}
 			}
 		});
@@ -181,12 +178,13 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 		// Notify remoteService that client connected
 		if (this.state == State.DISCONNECTED && state != State.DISCONNECTED) {
 			this.state = state;
-			remoteService.onClientConnected();
+			servContext.getRemoteService().onClientConnected();
 		}
+
 		// Notify remoteService that client disconnected
 		else if (this.state != State.DISCONNECTED && state == State.DISCONNECTED) {
 			this.state = state;
-			remoteService.onClientDisconnected();
+			servContext.getRemoteService().onClientDisconnected();
 		} else
 			this.state = state;
 	}
@@ -205,8 +203,8 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 		Object result = source[1];
 
 		// Get serialization policy
-		SerializationPolicy serializationPolicy = remoteService.getSerializationPolicy(getModuleName(),
-				getStrongName());
+		SerializationPolicy serializationPolicy = servContext.getRemoteService().getSerializationPolicy(
+				getModuleName(), getStrongName());
 
 		// Encode result
 		ServerSerializationStreamWriter stream = new ServerSerializationStreamWriter(serializationPolicy);
@@ -223,7 +221,7 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 		LOG.debug("Send push result to event: " + eventCanonicalName + ". Response payload to send: " + responsePayload);
 
 		// Send response if RPC connection initialized
-		sendFrame( SocketIOFrame.makeMessage(responsePayload) );
+		sendFrame(SocketIOFrame.makeMessage(responsePayload));
 	}
 
 	@Override
@@ -255,7 +253,7 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 
 	@Override
 	public String toString() {
-		return " [ ID:" + id + "; SessionID:" + sessionId + "; State: " + state + "; Buffer: " + buffer + " ] ";
+		return " [ ID:" + id + "; SessionID:" + session + "; State: " + state + "; Buffer: " + buffer + " ] ";
 	}
 
 	/**
