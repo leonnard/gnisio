@@ -1,6 +1,5 @@
 package net.gnisio.server.transports;
 
-import net.gnisio.server.AbstractRemoteService;
 import net.gnisio.server.PacketsProcessor.ServerContext;
 import net.gnisio.server.SocketIOFrame;
 import net.gnisio.server.clients.ClientConnection;

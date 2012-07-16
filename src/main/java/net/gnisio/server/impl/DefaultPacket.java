@@ -1,7 +1,7 @@
 package net.gnisio.server.impl;
 
-import net.gnisio.server.PacketsProcessor.Packet;
 import net.gnisio.server.PacketsProcessor.ConnectionContext;
+import net.gnisio.server.PacketsProcessor.Packet;
 
 import org.jboss.netty.channel.ChannelHandlerContext;
 

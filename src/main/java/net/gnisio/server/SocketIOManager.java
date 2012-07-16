@@ -2,7 +2,6 @@ package net.gnisio.server;
 
 import static org.jboss.netty.handler.codec.http.HttpHeaders.isKeepAlive;
 
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -117,7 +116,7 @@ public class SocketIOManager {
 	 * @param req
 	 * @param res
 	 */
-	public static void sendHttpResponse(ChannelHandlerContext ctx, HttpRequest req, HttpResponse res) {
+	public static ChannelFuture sendHttpResponse(ChannelHandlerContext ctx, HttpRequest req, HttpResponse res) {
 		// Set response length
 		if (isKeepAlive(req)) {
 			// Add 'Content-Length' header only for a keep-alive connection.
@@ -127,7 +126,7 @@ public class SocketIOManager {
 			res.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
 
-		LOG.debug("Write HTTP response to client: " + res.getContent().toString(Charset.forName("UTF-8")));
+		LOG.debug("Write HTTP response to client: " + res.toString());
 
 		// Send data
 		ChannelFuture f = ctx.getChannel().write(res);
@@ -136,6 +135,8 @@ public class SocketIOManager {
 		if (!isKeepAlive(req) || res.getStatus().getCode() != 200) {
 			f.addListener(ChannelFutureListener.CLOSE);
 		}
+		
+		return f;
 	}
 
 	/**

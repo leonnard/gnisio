@@ -141,9 +141,8 @@ public class PacketExecutionLogic {
 			LOG.warn("Request filtred and stoped by pre processor. Close connection");
 			ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
 		} catch (ForceCloseConnection ex) {
-			LOG.warn("Processor force close the connection. Send response and close connection");
-			SocketIOManager.sendHttpResponse(ctx, req, resp);
-			ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
+			LOG.warn("Processor force close the connection. Send response and close connection: "+req.toString());
+			SocketIOManager.sendHttpResponse(ctx, req, resp).addListener(ChannelFutureListener.CLOSE);
 		} catch (ClientConnectionNotExists ex) {
 			LOG.warn("Client connection with UUID=" + ex.toString() + " not exists in storage");
 			ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);

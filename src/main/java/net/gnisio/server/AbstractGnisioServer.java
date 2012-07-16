@@ -90,15 +90,16 @@ public abstract class AbstractGnisioServer {
 				if (sslContext != null) {
 					SSLEngine engine = sslContext.createSSLEngine();
 					engine.setUseClientMode(false);
+					
 					pipeline.addLast("ssl", new SslHandler(engine));
+					pipeline.addLast("chunkedWriter", new ChunkedWriteHandler());
 				}
 
 				// Set handlers
 				pipeline.addLast("decoder", new HttpRequestDecoder());
 				pipeline.addLast("aggregator", new HttpChunkAggregator(65536));
 				pipeline.addLast("encoder", new HttpResponseEncoder());
-				pipeline.addLast("chunkedWriter", new ChunkedWriteHandler());
-				pipeline.addLast("handler", new GnisioPipelineHandler(packetsProcessor));
+				pipeline.addLast("handler", new GnisioPipelineHandler(packetsProcessor) );
 				return pipeline;
 			}
 		});

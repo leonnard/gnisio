@@ -1,9 +1,9 @@
 package net.gnisio.server.impl;
 
-import org.jboss.netty.channel.ChannelHandlerContext;
-
 import net.gnisio.server.PacketsProcessor.ConnectionContext;
 import net.gnisio.server.PacketsProcessor.Packet;
+
+import org.jboss.netty.channel.ChannelHandlerContext;
 
 /**
  * This packet put to queue when websocket connection disconnected

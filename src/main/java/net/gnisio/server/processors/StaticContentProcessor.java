@@ -38,6 +38,8 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.stream.ChunkedFile;
 import org.jboss.netty.util.CharsetUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Static content processor with NOT_MODIFIED response future. Also it disable
@@ -46,8 +48,7 @@ import org.jboss.netty.util.CharsetUtil;
  * @author c58
  */
 public class StaticContentProcessor extends RequestProcessor {
-	// private static final Logger LOG = LoggerFactory
-	// .getLogger(StaticContentProcessor.class);
+	private static final Logger LOG = LoggerFactory.getLogger(StaticContentProcessor.class);
 
 	public static final String HTTP_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
 	public static final String HTTP_DATE_GMT_TIMEZONE = "GMT";
@@ -183,6 +184,7 @@ public class StaticContentProcessor extends RequestProcessor {
 	}
 
 	protected static void sendError(HttpResponse response, HttpResponseStatus status) throws ForceCloseConnection {
+		LOG.info("Error in static processor: "+status);
 		response.setStatus(status);
 		response.setContent(ChannelBuffers.copiedBuffer(status.toString() + "\r\n", CharsetUtil.UTF_8));
 
