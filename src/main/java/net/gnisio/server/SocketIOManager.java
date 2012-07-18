@@ -126,8 +126,6 @@ public class SocketIOManager {
 			res.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 		}
 
-		LOG.debug("Write HTTP response to client: " + res.toString());
-
 		// Send data
 		ChannelFuture f = ctx.getChannel().write(res);
 

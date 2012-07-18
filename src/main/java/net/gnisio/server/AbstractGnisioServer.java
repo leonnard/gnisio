@@ -43,11 +43,22 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractGnisioServer {
 	private static final Logger LOG = LoggerFactory.getLogger(AbstractGnisioServer.class);
 
-	// for stopping the server
+	// Main server
 	private ServerBootstrap bootstrap;
 	private Channel serverChannel;
 	private SSLContext sslContext;
 	private ServerContext servContext;
+
+	// Redirection server
+	private ServerBootstrap redirectBootstrap;
+	private Channel redirectServerChannel;
+	
+	// Packet processing futures
+	private PacketsProcessor packetsProcessor;
+	private ClientsStorage clientsStorage;
+	private SessionsStorage sessionsStorage;
+	private RequestProcessorsCollection requestProcessors;
+	private AbstractRemoteService remoteService;
 
 	public void start(int port) throws Exception {
 		start("localhost", port);
@@ -55,15 +66,15 @@ public abstract class AbstractGnisioServer {
 
 	public void start(final String host, int port) throws Exception {
 		// Make storages
-		final ClientsStorage clientsStorage = createClientsStorage();
-		final SessionsStorage sessionsStorage = createSessionsStorage();
+		clientsStorage = createClientsStorage();
+		sessionsStorage = createSessionsStorage();
 
 		// Make request processors collection
-		final RequestProcessorsCollection requestProcessors = createRequestProcessorsCollection(sessionsStorage,
+		requestProcessors = createRequestProcessorsCollection(sessionsStorage,
 				clientsStorage);
 
 		// Make remote service
-		final AbstractRemoteService remoteService = createRemoteService(sessionsStorage, clientsStorage);
+		remoteService = createRemoteService(sessionsStorage, clientsStorage);
 		remoteService.init(sessionsStorage);
 
 		// Create server context
@@ -71,7 +82,7 @@ public abstract class AbstractGnisioServer {
 				port, sslContext != null);
 
 		// Make packet processor
-		final PacketsProcessor packetsProcessor = createPacketsProcessor(servContext);
+		packetsProcessor = createPacketsProcessor(servContext);
 
 		// Create bootstrap
 		ExecutorService bossExec = new OrderedMemoryAwareThreadPoolExecutor(1, 400000000, 2000000000, 60,
@@ -90,7 +101,7 @@ public abstract class AbstractGnisioServer {
 				if (sslContext != null) {
 					SSLEngine engine = sslContext.createSSLEngine();
 					engine.setUseClientMode(false);
-					
+
 					pipeline.addLast("ssl", new SslHandler(engine));
 					pipeline.addLast("chunkedWriter", new ChunkedWriteHandler());
 				}
@@ -99,7 +110,7 @@ public abstract class AbstractGnisioServer {
 				pipeline.addLast("decoder", new HttpRequestDecoder());
 				pipeline.addLast("aggregator", new HttpChunkAggregator(65536));
 				pipeline.addLast("encoder", new HttpResponseEncoder());
-				pipeline.addLast("handler", new GnisioPipelineHandler(packetsProcessor) );
+				pipeline.addLast("handler", new GnisioPipelineHandler(packetsProcessor));
 				return pipeline;
 			}
 		});
@@ -112,9 +123,43 @@ public abstract class AbstractGnisioServer {
 		createRequestProcessors(requestProcessors);
 
 		// Bind and start to accept incoming connections.
-		this.serverChannel = bootstrap.bind(new InetSocketAddress(host, port));
-
+		serverChannel = bootstrap.bind(new InetSocketAddress(host, port));
 		LOG.info("Server Started at host [" + host + "] and port [" + port + "]");
+	}
+
+	/**
+	 * Create ligthweight redirection server for redirecting from 80 to 443 port
+	 */
+	protected void startRedirectionServer(String host) {
+		// Create bootstrap
+		ExecutorService bossExec = new OrderedMemoryAwareThreadPoolExecutor(1, 400000000, 2000000000, 60,
+				TimeUnit.SECONDS);
+		ExecutorService ioExec = new OrderedMemoryAwareThreadPoolExecutor(4, 400000000, 2000000000, 60,
+				TimeUnit.SECONDS);
+		redirectBootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(bossExec, ioExec, 4));
+
+		// Set up the event pipeline factory.
+		redirectBootstrap.setPipelineFactory(new ChannelPipelineFactory() {
+			@Override
+			public ChannelPipeline getPipeline() throws Exception {
+				ChannelPipeline pipeline = pipeline();
+
+				// Set handlers
+				pipeline.addLast("decoder", new HttpRequestDecoder());
+				pipeline.addLast("aggregator", new HttpChunkAggregator(65536));
+				pipeline.addLast("encoder", new HttpResponseEncoder());
+				pipeline.addLast("handler", new TpSSLRedirectPipelineHandler());
+				return pipeline;
+			}
+		});
+
+		// Other options
+		redirectBootstrap.setOption("backlog", 500);
+		redirectBootstrap.setOption("connectTimeoutMillis", 10000);
+		
+		// Start server
+		redirectServerChannel = redirectBootstrap.bind(new InetSocketAddress(host, 80));
+		LOG.info("Redirect server Started at host [" + host + "] and port [80]");
 	}
 
 	/**
@@ -158,7 +203,9 @@ public abstract class AbstractGnisioServer {
 	 * Stop the server
 	 */
 	public void stop() {
+		packetsProcessor.stopProcessing();
 		serverChannel.close();
+		redirectServerChannel.close();
 	}
 
 	/**
@@ -240,14 +287,17 @@ public abstract class AbstractGnisioServer {
 				// Initialise the SSLContext to work with our key managers.
 				serverContext = SSLContext.getInstance("TLS");
 				serverContext.init(kmf.getKeyManagers(), null, null);
+				sslContext = serverContext;
 			} catch (Exception e) {
 				throw new Error("Failed to initialize the server-side SSLContext", e);
 			}
-
-			sslContext = serverContext;
 		} catch (Exception ex) {
 			LOG.error("Error initializing SslContextManager. " + ex.getMessage(), ex);
-			System.exit(1);
+			throw new RuntimeException("Can't initialize SSL");
 		}
+	}
+	
+	public boolean isSSLEnabled(){
+		return sslContext != null;
 	}
 }
