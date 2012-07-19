@@ -7,6 +7,7 @@ import static org.jboss.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static org.jboss.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static org.jboss.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
+import javax.activation.MimetypesFileTypeMap;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
@@ -19,8 +20,6 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.TimeZone;
-
-import javax.activation.MimetypesFileTypeMap;
 
 import net.gnisio.server.exceptions.ForceCloseConnection;
 
@@ -50,6 +49,17 @@ import org.slf4j.LoggerFactory;
 public class StaticContentProcessor extends RequestProcessor {
 	private static final Logger LOG = LoggerFactory.getLogger(StaticContentProcessor.class);
 
+	// Add base mime types
+	private static final MimetypesFileTypeMap mimeTypesMap;
+	static {
+		mimeTypesMap = new MimetypesFileTypeMap();
+		
+		mimeTypesMap.addMimeTypes("text/plain txt text");
+		mimeTypesMap.addMimeTypes("text/css css");
+		mimeTypesMap.addMimeTypes("text/javascript js");
+		mimeTypesMap.addMimeTypes("text/html html htm");
+	}
+	
 	public static final String HTTP_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
 	public static final String HTTP_DATE_GMT_TIMEZONE = "GMT";
 	public static final int HTTP_CACHE_SECONDS = 60;
@@ -270,8 +280,7 @@ public class StaticContentProcessor extends RequestProcessor {
 	 *            file to extract content type
 	 */
 	protected static void setContentTypeHeader(HttpResponse response, File file) {
-		MimetypesFileTypeMap mimeTypesMap = new MimetypesFileTypeMap();
-		response.setHeader(HttpHeaders.Names.CONTENT_TYPE, mimeTypesMap.getContentType(file.getPath())
+		response.setHeader(HttpHeaders.Names.CONTENT_TYPE, mimeTypesMap.getContentType(file.getName())
 				+ "; charset=UTF-8");
 	}
 
