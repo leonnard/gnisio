@@ -41,12 +41,25 @@ public interface SessionsStorage {
 		 * @return
 		 */
 		Date getLastActivityDate();
+		
+		/**
+		 * Return user agent of the session
+		 * @return
+		 */
+		String getUserAgent();
 	}
 
 	/**
-	 * Return session by given Id
+	 * Return session by given Id and check that session used by given userAgent
 	 * 
 	 * @param value
+	 * @return
+	 */
+	Session getSession(String id, String userAgent);
+	
+	/**
+	 * Return session by given id without userAgent checcking
+	 * @param id
 	 * @return
 	 */
 	Session getSession(String id);
@@ -56,7 +69,7 @@ public interface SessionsStorage {
 	 * 
 	 * @return
 	 */
-	Session createSession();
+	Session createSession(String userAgent);
 
 	/**
 	 * Reset cleanup timer of session with given Id

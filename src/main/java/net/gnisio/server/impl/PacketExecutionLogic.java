@@ -182,7 +182,7 @@ public class PacketExecutionLogic {
 				Cookie cook = it.next();
 
 				if (cook.getName().equals("__sessId")
-						&& servContext.getSessionsStorage().getSession(cook.getValue()) != null) {
+						&& servContext.getSessionsStorage().getSession(cook.getValue(), req.getHeader(HttpHeaders.Names.USER_AGENT)) != null) {
 					servContext.getSessionsStorage().resetClearTimer(cook.getValue());
 					return cook.getValue();
 				}
@@ -190,7 +190,7 @@ public class PacketExecutionLogic {
 		}
 
 		// Create session
-		Session sess = servContext.getSessionsStorage().createSession();
+		Session sess = servContext.getSessionsStorage().createSession( req.getHeader(HttpHeaders.Names.USER_AGENT) );
 
 		// Create cookie
 		Cookie sessCookie = new DefaultCookie("__sessId", sess.getId());

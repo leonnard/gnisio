@@ -20,11 +20,13 @@ public class MemorySessionsStorage implements SessionsStorage {
 		private final String id;
 		private int priority = 0;
 		private Date lastActivity;
+		private String userAgent;
 
-		public DefaultSession(String id) {
+		public DefaultSession(String id, String userAgent) {
 			this.id = id;
 			this.clearTimer = SocketIOManager.scheduleSessionTimeoutTask(this);
 			this.lastActivity = new Date();
+			this.userAgent = userAgent;
 		}
 		
 		@Override
@@ -75,6 +77,11 @@ public class MemorySessionsStorage implements SessionsStorage {
 		public Date getLastActivityDate() {
 			return lastActivity;
 		}
+
+		@Override
+		public String getUserAgent() {
+			return userAgent;
+		}
 		
 	}
 
@@ -83,13 +90,23 @@ public class MemorySessionsStorage implements SessionsStorage {
 	}
 	
 	@Override
+	public Session getSession(String id, String userAgent) {
+		Session sess = sessionsMap.get(id);
+		
+		if(sess != null && userAgent.equals( sess.getUserAgent() ))
+			return sess;
+		
+		return null;
+	}
+	
+	@Override
 	public Session getSession(String id) {
 		return sessionsMap.get(id);
 	}
 
 	@Override
-	public Session createSession() {
-		DefaultSession sess = new DefaultSession( SocketIOManager.generateString(64) );
+	public Session createSession(String userAgent) {
+		DefaultSession sess = new DefaultSession( SocketIOManager.generateString(64), userAgent );
 		sessionsMap.put(sess.getId(), sess);
 		return sess;
 	}
