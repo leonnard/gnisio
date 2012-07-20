@@ -1,18 +1,14 @@
 package net.gnisio.server;
 
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-
 import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+import java.lang.annotation.RetentionPolicy;
 
 /**
  * Annotation for protecting GWT RPC methods
  * @author c58
  */
 
-@Target( METHOD )
-@Retention( RUNTIME )
+@Retention( RetentionPolicy.RUNTIME )
 public @interface AuthorityLevel {
 	int value();
 }

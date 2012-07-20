@@ -83,7 +83,7 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 		// Put it to map
 		if (!pushEventsCallback.containsKey(eventName))
 			pushEventsCallback.put(eventName, new ArrayList<RequestCallback>());
-		
+
 		pushEventsCallback.get(eventName).add(callback);
 	}
 
@@ -127,14 +127,6 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 			public void run() {
 				// Send init message
 				socket.sendMessage(serizlizationPolicy + "|" + GWT.getModuleBaseURL());
-
-				// Free requests queue
-				String req = null;
-				while ((req = waitQueue.poll()) != null)
-					socket.sendMessage(req);
-
-				// Set initiated flag
-				initiated = true;
 			}
 		}.schedule(1);
 	}
@@ -145,93 +137,107 @@ public class SocketRPCController implements SIOConnectedHandler, SIOReconnectedH
 	 * @param message
 	 */
 	public void processMessage(String message) {
-		// Get response type
-		int respType = Integer.parseInt(message.substring(0, 1));
+		// Check for init response
+		if (!initiated) {
+			if (message.equals("INIT_DONE")) {
+				// Free requests queue
+				String req = null;
+				while ((req = waitQueue.poll()) != null)
+					socket.sendMessage(req);
 
-		// It's a request/response pattern
-		if (respType == 0) {
-			int requestId = Integer.parseInt(message.substring(1, 5), 16);
+				// Set initiated flag
+				initiated = true;
+			}
+		} else {
 
-			if (requestCallback.containsKey(requestId)) {
-				// Get callback
-				RequestCallback callback = requestCallback.get(requestId);
-				requestCallback.remove(requestId);
+			// Get response type
+			int respType = Integer.parseInt(message.substring(0, 1));
+
+			// It's a request/response pattern
+			if (respType == 0) {
+				int requestId = Integer.parseInt(message.substring(1, 5), 16);
+
+				if (requestCallback.containsKey(requestId)) {
+					// Get callback
+					RequestCallback callback = requestCallback.get(requestId);
+					requestCallback.remove(requestId);
+
+					// Get data
+					final String data = message.substring(5);
+
+					// Run callback
+					callback.onResponseReceived(null, new Response() {
+						public String getHeader(String header) {
+							return null;
+						}
+
+						public Header[] getHeaders() {
+							return null;
+						}
+
+						public String getHeadersAsString() {
+							return null;
+						}
+
+						public int getStatusCode() {
+							return Response.SC_OK;
+						}
+
+						public String getStatusText() {
+							return null;
+						}
+
+						public String getText() {
+							return data;
+						}
+					});
+				}
+			}
+
+			// It's a push message
+			else if (respType == 1) {
+				// Get methodName
+				int nameLength = Integer.parseInt(message.substring(1, 3), 16);
+				String methodName = message.substring(3, nameLength + 3);
 
 				// Get data
-				final String data = message.substring(5);
+				final String data = message.substring(nameLength + 3);
 
-				// Run callback
-				callback.onResponseReceived(null, new Response() {
-					public String getHeader(String header) {
-						return null;
-					}
+				// Invoke method
+				if (pushEventsCallback.containsKey(methodName)) {
+					firePushEvent(methodName, new Response() {
+						public String getHeader(String header) {
+							return null;
+						}
 
-					public Header[] getHeaders() {
-						return null;
-					}
+						public Header[] getHeaders() {
+							return null;
+						}
 
-					public String getHeadersAsString() {
-						return null;
-					}
+						public String getHeadersAsString() {
+							return null;
+						}
 
-					public int getStatusCode() {
-						return Response.SC_OK;
-					}
+						public int getStatusCode() {
+							return Response.SC_OK;
+						}
 
-					public String getStatusText() {
-						return null;
-					}
+						public String getStatusText() {
+							return null;
+						}
 
-					public String getText() {
-						return data;
-					}
-				});
-			}
-		}
-
-		// It's a push message
-		else if (respType == 1) {
-			// Get methodName
-			int nameLength = Integer.parseInt(message.substring(1, 3), 16);
-			String methodName = message.substring(3, nameLength + 3);
-
-			// Get data
-			final String data = message.substring(nameLength + 3);
-			
-			// Invoke method
-			if (pushEventsCallback.containsKey(methodName)) {
-				firePushEvent(methodName, new Response() {
-					public String getHeader(String header) {
-						return null;
-					}
-
-					public Header[] getHeaders() {
-						return null;
-					}
-
-					public String getHeadersAsString() {
-						return null;
-					}
-
-					public int getStatusCode() {
-						return Response.SC_OK;
-					}
-
-					public String getStatusText() {
-						return null;
-					}
-
-					public String getText() {
-						return data;
-					}
-				});
+						public String getText() {
+							return data;
+						}
+					});
+				}
 			}
 		}
 	}
-	
+
 	private void firePushEvent(String eventType, Response response) {
-		for(RequestCallback callback : pushEventsCallback.get(eventType))
-			callback.onResponseReceived(null, response); 
+		for (RequestCallback callback : pushEventsCallback.get(eventType))
+			callback.onResponseReceived(null, response);
 	}
 
 	/**

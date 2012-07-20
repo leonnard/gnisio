@@ -140,6 +140,9 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 			// Initialize RPC session
 			client.initializeRPCSession(parts[0], parts[1]);
 			LOG.debug("Initialize RPC session: " + parts[0] + "  " + parts[1]);
+
+			// Send init message to the client
+			client.sendFrame(SocketIOFrame.makeMessage("INIT_DONE"));
 			return null;
 		} else {
 			// Get data pattern type: 0XXXXdata
@@ -194,12 +197,10 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 			// Check method authority level
 			AuthorityLevel priority = rpcRequest.getMethod().getAnnotation(AuthorityLevel.class);
 			Session sess = null;
-
+			
 			if (priority != null
 					&& (((sess = getSession()) != null && sess.getAuthorityLevel() < priority.value()) || sess == null))
-				throw new LowAuthorityLevel("Session " + sess.getId() + " with authority level "
-						+ sess.getAuthorityLevel() + " try invoke method " + rpcRequest.getMethod().getName()
-						+ " with level " + priority.value());
+				throw new LowAuthorityLevel();
 
 			result = RPC.invokeAndEncodeResponse(this, rpcRequest.getMethod(), rpcRequest.getParameters(),
 					rpcRequest.getSerializationPolicy(), rpcRequest.getFlags());
@@ -211,7 +212,7 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 			LOG.info("An RpcTokenException was thrown while processing this call.", tokenException);
 			result = RPC.encodeResponseForFailure(null, tokenException);
 		} catch (LowAuthorityLevel e) {
-			LOG.info(e.getMessage());
+			LOG.info("Low authority level");
 			result = RPC.encodeResponseForFailure(null, e);
 		}
 
