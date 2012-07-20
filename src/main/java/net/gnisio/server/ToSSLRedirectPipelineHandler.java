@@ -12,22 +12,22 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.mortbay.jetty.HttpHeaders;
 
-public class TpSSLRedirectPipelineHandler extends SimpleChannelUpstreamHandler {
+public class ToSSLRedirectPipelineHandler extends SimpleChannelUpstreamHandler {
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
 		// Get the message
 		Object msg = e.getMessage();
 
 		// Check message type
-		if( !(msg instanceof HttpRequest) )
+		if (!(msg instanceof HttpRequest))
 			return;
-		
-		HttpRequest req = (HttpRequest)msg;
-		
+
+		HttpRequest req = (HttpRequest) msg;
+
 		// Create redirection response
 		HttpResponse resp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.TEMPORARY_REDIRECT);
-		resp.setHeader(HttpHeaders.LOCATION, req.getUri().replaceFirst("http", "https"));
-		
+		resp.setHeader(HttpHeaders.LOCATION, "https" + req.getUri().substring(4));
+
 		// Write response and close connection
 		ctx.getChannel().write(resp).addListener(ChannelFutureListener.CLOSE);
 	}

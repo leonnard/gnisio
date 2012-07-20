@@ -17,6 +17,7 @@ public class MemorySessionsStorage implements SessionsStorage {
 		private final ConcurrentMap<Object, Object> data = new ConcurrentHashMap<Object, Object>();
 		private ScheduledFuture<?> clearTimer;
 		private final String id;
+		private int priority = 0;
 
 		public DefaultSession(String id) {
 			this.id = id;
@@ -54,6 +55,16 @@ public class MemorySessionsStorage implements SessionsStorage {
 		@Override
 		public void run() {
 			MemorySessionsStorage.this.removeSession( getId() );
+		}
+
+		@Override
+		public void setAuthorityLevel(int level) {
+			this.priority = level;
+		}
+
+		@Override
+		public int getAuthorityLevel() {
+			return priority;
 		}
 		
 	}

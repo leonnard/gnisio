@@ -13,6 +13,7 @@ import java.util.Map;
 
 import net.gnisio.server.SessionsStorage.Session;
 import net.gnisio.server.clients.ClientConnection;
+import net.gnisio.server.exceptions.LowAuthorityLevel;
 import net.gnisio.shared.PushEventType;
 
 import org.slf4j.Logger;
@@ -74,7 +75,7 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 		this.baseAppPath = gwtAppLocation;
 		this.dispatcher = Dispatchers.broadcastUnordered();
 	}
-	
+
 	public void init(SessionsStorage sessionsStore) {
 		this.sessionsStore = sessionsStore;
 	}
@@ -102,9 +103,9 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	 * @return
 	 */
 	public Session getSession() {
-		if(sessionsStore != null)
-			return sessionsStore.getSession( getClientConnection().getSessionId() );
-		
+		if (sessionsStore != null)
+			return sessionsStore.getSession(getClientConnection().getSessionId());
+
 		return null;
 	}
 
@@ -187,7 +188,16 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	private String processRPCRequest(String data) throws SerializationException {
 		String result = null;
 		try {
+			// Decode RPC request
 			RPCRequest rpcRequest = RPC.decodeRequest(data, this.getClass(), this);
+
+			// Check method authority level
+			AuthorityLevel priority = rpcRequest.getMethod().getAnnotation(AuthorityLevel.class);
+			Session sess = null;
+			
+			if (priority != null && (sess = getSession()) != null && sess.getAuthorityLevel() < priority.value()) 
+				throw new LowAuthorityLevel("Session " + sess.getId() + " with authority level " + sess.getAuthorityLevel()
+						+ " try invoke method " + rpcRequest.getMethod().getName() + " with level " + priority.value());
 
 			result = RPC.invokeAndEncodeResponse(this, rpcRequest.getMethod(), rpcRequest.getParameters(),
 					rpcRequest.getSerializationPolicy(), rpcRequest.getFlags());
@@ -198,6 +208,9 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 		} catch (RpcTokenException tokenException) {
 			LOG.info("An RpcTokenException was thrown while processing this call.", tokenException);
 			result = RPC.encodeResponseForFailure(null, tokenException);
+		} catch (LowAuthorityLevel e) {
+			LOG.info( e.getMessage() );
+			result = RPC.encodeResponseForFailure(null, e);
 		}
 
 		return result;
@@ -383,9 +396,10 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	protected void removeSubscriber() {
 		dispatcher.unsubscribe((Subscriber<Object[]>) getClientConnection());
 	}
-	
+
 	/**
 	 * For removing errors
+	 * 
 	 * @param event
 	 */
 	public <T> void handleEvent(PushEventType event) {
