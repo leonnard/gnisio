@@ -13,7 +13,7 @@ import java.util.Map;
 
 import net.gnisio.server.SessionsStorage.Session;
 import net.gnisio.server.clients.ClientConnection;
-import net.gnisio.server.exceptions.LowAuthorityLevel;
+import net.gnisio.shared.LowAuthorityLevel;
 import net.gnisio.shared.PushEventType;
 
 import org.slf4j.Logger;

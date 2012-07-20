@@ -1,4 +1,4 @@
-package net.gnisio.server.exceptions;
+package net.gnisio.shared;
 
 import com.google.gwt.user.client.rpc.IsSerializable;
 
