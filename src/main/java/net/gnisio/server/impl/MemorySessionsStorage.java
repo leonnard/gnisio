@@ -1,6 +1,7 @@
 package net.gnisio.server.impl;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
@@ -18,10 +19,12 @@ public class MemorySessionsStorage implements SessionsStorage {
 		private ScheduledFuture<?> clearTimer;
 		private final String id;
 		private int priority = 0;
+		private Date lastActivity;
 
 		public DefaultSession(String id) {
 			this.id = id;
 			this.clearTimer = SocketIOManager.scheduleSessionTimeoutTask(this);
+			this.lastActivity = new Date();
 		}
 		
 		@Override
@@ -50,6 +53,7 @@ public class MemorySessionsStorage implements SessionsStorage {
 				clearTimer.cancel(false);
 			
 			clearTimer = SocketIOManager.scheduleSessionTimeoutTask(this);
+			lastActivity = new Date();
 		}
 
 		@Override
@@ -65,6 +69,11 @@ public class MemorySessionsStorage implements SessionsStorage {
 		@Override
 		public int getAuthorityLevel() {
 			return priority;
+		}
+
+		@Override
+		public Date getLastActivityDate() {
+			return lastActivity;
 		}
 		
 	}

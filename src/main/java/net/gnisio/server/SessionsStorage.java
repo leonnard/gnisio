@@ -1,6 +1,7 @@
 package net.gnisio.server;
 
 import java.io.Serializable;
+import java.util.Date;
 
 /**
  * Storage for sessions
@@ -33,6 +34,13 @@ public interface SessionsStorage {
 		void setAuthorityLevel(int level);
 
 		int getAuthorityLevel();
+
+		/**
+		 * Return Date object of last activity time of the user within session
+		 * 
+		 * @return
+		 */
+		Date getLastActivityDate();
 	}
 
 	/**
