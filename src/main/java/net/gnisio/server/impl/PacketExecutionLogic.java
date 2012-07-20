@@ -69,25 +69,27 @@ public class PacketExecutionLogic {
 	 */
 	protected void processRawPacket(Packet packet) throws Exception {
 		// handle websocket disconnect packet
-		if(packet instanceof DisconnectPacket) {
+		if (packet instanceof DisconnectPacket) {
 			ConnectionContext connContext = packet.getContext();
-			if (connContext != null && connContext.getTransport() != null && connContext.getTransport() instanceof WebSocketTransport) 
+			if (connContext != null && connContext.getTransport() != null
+					&& connContext.getTransport() instanceof WebSocketTransport)
 				((WebSocketTransport) connContext.getTransport()).handleDisconnect(connContext, servContext);
 		}
-		
+
 		// handle general HTTP request
 		else if (packet.getMessage() instanceof HttpRequest) {
 			handleHttpRequest(packet, (HttpRequest) packet.getMessage());
 		}
-		
+
 		// Process WebSocket frame (for websocket transport)
 		else if (packet.getMessage() instanceof WebSocketFrame) {
 			LOG.debug("Received WebSocket frame: "
 					+ ((WebSocketFrame) packet.getMessage()).getBinaryData().toString(Charset.forName("UTF-8")));
 
 			if (packet.getContext().getTransport() != null) {
-				servContext.getSessionsStorage().resetClearTimer( packet.getContext().getSessionId() );
-				packet.getContext().getTransport().processWebSocketFrame((WebSocketFrame) packet.getMessage(), packet, servContext);
+				servContext.getSessionsStorage().resetClearTimer(packet.getContext().getSessionId());
+				packet.getContext().getTransport()
+						.processWebSocketFrame((WebSocketFrame) packet.getMessage(), packet, servContext);
 			} else {
 				LOG.warn("WebSocket frame received before websocket transport activated. Close connection");
 				packet.getCtx().getChannel().close().addListener(ChannelFutureListener.CLOSE);
@@ -122,7 +124,7 @@ public class PacketExecutionLogic {
 
 		// Prepare user session
 		if (packet.getContext().getSessionId() == null)
-			packet.getContext().setSessionId( prepareSession(req, resp) );
+			packet.getContext().setSessionId(prepareSession(req, resp));
 
 		try {
 			// Invoke preprocessor before invoking request processor
@@ -141,7 +143,7 @@ public class PacketExecutionLogic {
 			LOG.warn("Request filtred and stoped by pre processor. Close connection");
 			ctx.getChannel().close().addListener(ChannelFutureListener.CLOSE);
 		} catch (ForceCloseConnection ex) {
-			LOG.warn("Processor force close the connection. Send response and close connection: "+req.toString());
+			LOG.warn("Processor force close the connection. Send response and close connection: " + req.toString());
 			SocketIOManager.sendHttpResponse(ctx, req, resp).addListener(ChannelFutureListener.CLOSE);
 		} catch (ClientConnectionNotExists ex) {
 			LOG.warn("Client connection with UUID=" + ex.toString() + " not exists in storage");
@@ -180,9 +182,12 @@ public class PacketExecutionLogic {
 
 			while (it.hasNext()) {
 				Cookie cook = it.next();
+				String userAgent = req.getHeader(HttpHeaders.Names.USER_AGENT);
 
 				if (cook.getName().equals("__sessId")
-						&& servContext.getSessionsStorage().getSession(cook.getValue(), req.getHeader(HttpHeaders.Names.USER_AGENT)) != null) {
+						&& ((userAgent != null && servContext.getSessionsStorage().getSession(cook.getValue(),
+								userAgent) != null) || (req.getHeader(HttpHeaders.Names.UPGRADE) != null && servContext
+								.getSessionsStorage().getSession(cook.getValue()) != null))) {
 					servContext.getSessionsStorage().resetClearTimer(cook.getValue());
 					return cook.getValue();
 				}
@@ -190,7 +195,7 @@ public class PacketExecutionLogic {
 		}
 
 		// Create session
-		Session sess = servContext.getSessionsStorage().createSession( req.getHeader(HttpHeaders.Names.USER_AGENT) );
+		Session sess = servContext.getSessionsStorage().createSession(req.getHeader(HttpHeaders.Names.USER_AGENT));
 
 		// Create cookie
 		Cookie sessCookie = new DefaultCookie("__sessId", sess.getId());
