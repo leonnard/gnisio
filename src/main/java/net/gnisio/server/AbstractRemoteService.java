@@ -368,6 +368,17 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	protected <T> void pushEvent(PushEventType event, T result, String node) {
 		dispatcher.publish(Topic.topic(node), new Object[] { event, result, getClientConnection() });
 	}
+	
+	/**
+	 * Push the message to subscribers by given node
+	 * 
+	 * @param methodName
+	 * @param node
+	 * @param result
+	 */
+	public <T> void pushSystemEvent(PushEventType event, T result, String node) {
+		dispatcher.publish(Topic.topic(node), new Object[] { event, result, null });
+	}
 
 	/**
 	 * Add the subscriber to given nodes
