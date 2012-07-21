@@ -40,7 +40,7 @@ import com.mycila.event.Topics;
  * @author c58
  * 
  */
-public abstract class AbstractRemoteService implements SerializationPolicyProvider {
+public abstract class AbstractRemoteService implements SerializationPolicyProvider, EventsPusher {
 	private static final Logger LOG = LoggerFactory.getLogger(AbstractRemoteService.class);
 
 	private static final ThreadLocal<ClientConnection> currentClient = new ThreadLocal<ClientConnection>();
@@ -413,7 +413,7 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	}
 
 	/**
-	 * For removing errors
+	 * For removing errors. Do nothing
 	 * 
 	 * @param event
 	 */
