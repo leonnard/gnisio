@@ -407,7 +407,7 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	 * Fully remove subscriber
 	 */
 	@SuppressWarnings("unchecked")
-	protected void removeSubscriber() {
+	protected void removeSubscribers() {
 		dispatcher.unsubscribe((Subscriber<Object[]>) getClientConnection());
 	}
 
