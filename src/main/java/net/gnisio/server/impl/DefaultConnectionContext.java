@@ -1,5 +1,9 @@
 package net.gnisio.server.impl;
 
+import java.util.Set;
+
+import org.jboss.netty.handler.codec.http.Cookie;
+
 import net.gnisio.server.PacketsProcessor.ConnectionContext;
 import net.gnisio.server.clients.ClientConnection;
 import net.gnisio.server.transports.Transport;
@@ -12,6 +16,7 @@ public class DefaultConnectionContext implements ConnectionContext {
 	private ClientConnection conn;
 	private String sess;
 	private Transport transport;
+	private Set<Cookie> cookies;
 
 	@Override
 	public ClientConnection getClientConnection() {
@@ -41,6 +46,16 @@ public class DefaultConnectionContext implements ConnectionContext {
 	@Override
 	public void setTransport(Transport transport) {
 		this.transport = transport;
+	}
+
+	@Override
+	public Set<Cookie> getCookies() {
+		return cookies;
+	}
+
+	@Override
+	public void setCookies(Set<Cookie> cookies) {
+		this.cookies = cookies;
 	}
 
 }

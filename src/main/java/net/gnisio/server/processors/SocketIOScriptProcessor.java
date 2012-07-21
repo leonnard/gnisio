@@ -13,12 +13,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
+import net.gnisio.server.PacketsProcessor.Packet;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
@@ -65,7 +66,7 @@ public class SocketIOScriptProcessor extends AbstractRequestProcessor {
 	}
 
 	@Override
-	public void processRequest(HttpRequest request, HttpResponse resp, ChannelHandlerContext ctx) throws Exception {
+	public void processRequest(HttpRequest request, HttpResponse resp, Packet packet) throws Exception {
 		if (request.getMethod() != GET)
 			StaticContentProcessor.sendError(resp, METHOD_NOT_ALLOWED);
 
@@ -78,7 +79,7 @@ public class SocketIOScriptProcessor extends AbstractRequestProcessor {
 		resp.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/javascript; charset=UTF-8");
 
 		// Write the initial line and the header.
-		Channel ch = ctx.getChannel();
+		Channel ch = packet.getCtx().getChannel();
 		ch.write(resp);
 
 		// Write the file

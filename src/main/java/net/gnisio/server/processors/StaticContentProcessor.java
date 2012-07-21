@@ -21,13 +21,13 @@ import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import net.gnisio.server.PacketsProcessor.Packet;
 import net.gnisio.server.exceptions.ForceCloseConnection;
 
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.DefaultFileRegion;
 import org.jboss.netty.channel.FileRegion;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
@@ -77,7 +77,7 @@ public class StaticContentProcessor extends AbstractRequestProcessor {
 	}
 
 	@Override
-	public void processRequest(HttpRequest request, HttpResponse resp, ChannelHandlerContext ctx) throws Exception {
+	public void processRequest(HttpRequest request, HttpResponse resp, Packet packet) throws Exception {
 		if (request.getMethod() != GET)
 			sendError(resp, METHOD_NOT_ALLOWED);
 
@@ -119,7 +119,7 @@ public class StaticContentProcessor extends AbstractRequestProcessor {
 		setContentLength(resp, fileLength);
 		setContentTypeHeader(resp, file);
 
-		Channel ch = ctx.getChannel();
+		Channel ch = packet.getCtx().getChannel();
 
 		// Write the initial line and the header.
 		ch.write(resp);

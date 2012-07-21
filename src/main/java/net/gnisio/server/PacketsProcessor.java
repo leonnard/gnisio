@@ -1,11 +1,14 @@
 package net.gnisio.server;
 
+import java.util.Set;
+
 import net.gnisio.server.clients.ClientConnection;
 import net.gnisio.server.clients.ClientsStorage;
 import net.gnisio.server.processors.RequestProcessorsCollection;
 import net.gnisio.server.transports.Transport;
 
 import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.handler.codec.http.Cookie;
 
 /**
  * This is interface for packet processing.
@@ -36,6 +39,8 @@ public interface PacketsProcessor {
 		
 		public String getSessionId();
 		
+		public Set<Cookie> getCookies();
+		
 		public Transport getTransport();
 		
 		public void setClientConnection(ClientConnection connection);
@@ -43,6 +48,8 @@ public interface PacketsProcessor {
 		public void setSessionId(String sess);
 		
 		public void setTransport(Transport transport);
+
+		public void setCookies(Set<Cookie> cookies);
 	}
 	
 	/**

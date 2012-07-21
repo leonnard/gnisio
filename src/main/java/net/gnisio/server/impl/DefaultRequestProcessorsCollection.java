@@ -11,7 +11,6 @@ import net.gnisio.server.PacketsProcessor.Packet;
 import net.gnisio.server.SessionsStorage;
 import net.gnisio.server.clients.ClientsStorage;
 import net.gnisio.server.exceptions.StopRequestProcessing;
-import net.gnisio.server.processors.AbstractRequestProcessor;
 import net.gnisio.server.processors.RequestProcessor;
 import net.gnisio.server.processors.RequestProcessorsCollection;
 
@@ -72,12 +71,12 @@ public class DefaultRequestProcessorsCollection implements RequestProcessorsColl
 	}
 
 	@Override
-	public void invokeRequestPreProcessor(HttpRequest req, HttpResponse resp,Packet packet) throws Exception {
+	public void invokeRequestPreProcessor(HttpRequest req, HttpResponse resp, Packet packet) throws Exception {
 		RequestProcessor proc = getAppropriateProcessor(preprocessors, req.getUri());
 
 		try {
 			if (proc != null)
-				proc.processRequest(req, resp, packet.getCtx());
+				proc.processRequest(req, resp, packet);
 		} catch (Exception e) {
 			throw new StopRequestProcessing();
 		}
@@ -89,7 +88,7 @@ public class DefaultRequestProcessorsCollection implements RequestProcessorsColl
 		RequestProcessor proc = getAppropriateProcessor(processors, req.getUri());
 
 		if (proc != null)
-			proc.processRequest(req, resp, packet.getCtx());
+			proc.processRequest(req, resp, packet);
 	}
 
 	@Override
@@ -97,7 +96,7 @@ public class DefaultRequestProcessorsCollection implements RequestProcessorsColl
 		RequestProcessor proc = getAppropriateProcessor(postprocessors, req.getUri());
 
 		if (proc != null)
-			proc.processRequest(req, resp, packet.getCtx());
+			proc.processRequest(req, resp, packet);
 	}
 
 	@Override

@@ -124,7 +124,7 @@ public class PacketExecutionLogic {
 
 		// Prepare user session
 		if (packet.getContext().getSessionId() == null)
-			packet.getContext().setSessionId(prepareSession(req, resp));
+			prepareSession(req, resp, packet.getContext());
 
 		try {
 			// Invoke preprocessor before invoking request processor
@@ -170,15 +170,17 @@ public class PacketExecutionLogic {
 	 * 
 	 * @param req
 	 * @param resp
+	 * @param context 
 	 * @return
 	 */
-	private String prepareSession(HttpRequest req, HttpResponse resp) {
+	private String prepareSession(HttpRequest req, HttpResponse resp, ConnectionContext context) {
 		String cookieString = req.getHeader(HttpHeaders.Names.COOKIE);
 
 		// Try to find alive session in cookies
 		if (cookieString != null) {
 			Set<Cookie> cookies = cookDecoder.decode(cookieString);
 			Iterator<Cookie> it = cookies.iterator();
+			context.setCookies(cookies);
 
 			while (it.hasNext()) {
 				Cookie cook = it.next();
@@ -189,6 +191,8 @@ public class PacketExecutionLogic {
 								userAgent) != null) || (req.getHeader(HttpHeaders.Names.UPGRADE) != null && servContext
 								.getSessionsStorage().getSession(cook.getValue()) != null))) {
 					servContext.getSessionsStorage().resetClearTimer(cook.getValue());
+					context.setSessionId(cook.getValue());
+					
 					return cook.getValue();
 				}
 			}
@@ -208,6 +212,8 @@ public class PacketExecutionLogic {
 		cookEncoder.addCookie(sessCookie);
 		resp.setHeader(HttpHeaders.Names.SET_COOKIE, cookEncoder.encode());
 
+		// Set session in the context
+		context.setSessionId(sess.getId());
 		return sess.getId();
 	}
 

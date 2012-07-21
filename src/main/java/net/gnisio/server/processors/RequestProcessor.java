@@ -1,9 +1,9 @@
 package net.gnisio.server.processors;
 
-import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 
+import net.gnisio.server.PacketsProcessor.Packet;
 import net.gnisio.server.SessionsStorage;
 import net.gnisio.server.clients.ClientsStorage;
 
@@ -16,8 +16,8 @@ public interface RequestProcessor {
 	 * 
 	 * @param req
 	 * @param resp
-	 * @param ctx
+	 * @param packet
 	 * @throws Throwable
 	 */
-	void processRequest(HttpRequest req, HttpResponse resp, ChannelHandlerContext ctx) throws Exception;
+	void processRequest(HttpRequest req, HttpResponse resp, Packet packet) throws Exception;
 }
