@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @author c58
  */
-public class StaticContentProcessor extends RequestProcessor {
+public class StaticContentProcessor extends AbstractRequestProcessor {
 	private static final Logger LOG = LoggerFactory.getLogger(StaticContentProcessor.class);
 
 	// Add base mime types

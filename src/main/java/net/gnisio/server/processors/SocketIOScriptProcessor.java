@@ -29,7 +29,7 @@ import org.jboss.netty.handler.codec.http.HttpResponse;
  * 
  * @author c58
  */
-public class SocketIOScriptProcessor extends RequestProcessor {
+public class SocketIOScriptProcessor extends AbstractRequestProcessor {
 	private ChannelBuffer socketioJs;
 	private long lastModified;
 	private long fileLength;

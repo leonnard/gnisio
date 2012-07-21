@@ -11,6 +11,7 @@ import net.gnisio.server.PacketsProcessor.Packet;
 import net.gnisio.server.SessionsStorage;
 import net.gnisio.server.clients.ClientsStorage;
 import net.gnisio.server.exceptions.StopRequestProcessing;
+import net.gnisio.server.processors.AbstractRequestProcessor;
 import net.gnisio.server.processors.RequestProcessor;
 import net.gnisio.server.processors.RequestProcessorsCollection;
 
