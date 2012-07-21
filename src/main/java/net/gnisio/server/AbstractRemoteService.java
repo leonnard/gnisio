@@ -197,7 +197,7 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 			// Check method authority level
 			AuthorityLevel priority = rpcRequest.getMethod().getAnnotation(AuthorityLevel.class);
 			Session sess = null;
-			
+
 			if (priority != null
 					&& (((sess = getSession()) != null && sess.getAuthorityLevel() < priority.value()) || sess == null))
 				throw new LowAuthorityLevel();
@@ -368,7 +368,7 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	protected <T> void pushEvent(PushEventType event, T result, String node) {
 		dispatcher.publish(Topic.topic(node), new Object[] { event, result, getClientConnection() });
 	}
-	
+
 	/**
 	 * Push the message to subscribers by given node
 	 * 
@@ -377,6 +377,7 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	 * @param result
 	 */
 	public <T> void pushSystemEvent(PushEventType event, T result, String node) {
+		LOG.info("Push to: " + node);
 		dispatcher.publish(Topic.topic(node), new Object[] { event, result, null });
 	}
 

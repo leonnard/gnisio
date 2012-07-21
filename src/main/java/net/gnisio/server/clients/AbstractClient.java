@@ -191,6 +191,7 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 
 	@Override
 	public void onEvent(Event<Object[]> event) throws Exception {
+		LOG.info("Start pushing event");
 		Object[] source = event.getSource();
 
 		// Do nothing if this publisher is subscriber too
@@ -211,7 +212,7 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 		stream.setFlags(1);
 		stream.prepareToWrite();
 
-		if (result.getClass() != void.class)
+		if (result != null && result.getClass() != void.class)
 			stream.serializeValue(result, result.getClass());
 
 		// Create response message

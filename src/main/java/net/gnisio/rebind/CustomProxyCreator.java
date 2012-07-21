@@ -6,6 +6,7 @@ import java.util.Map;
 import net.gnisio.client.wrapper.PushClass;
 import net.gnisio.client.wrapper.SocketServiceProxy;
 
+import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.ext.typeinfo.JClassType;
 import com.google.gwt.core.ext.typeinfo.JField;
 import com.google.gwt.core.ext.typeinfo.JMethod;
@@ -24,18 +25,19 @@ import com.google.gwt.user.rebind.rpc.SerializableTypeOracle;
  */
 public class CustomProxyCreator extends ProxyCreator {
 
-	private static final Map<Class<?>, ResponseReader> JPRIMITIVETYPE_TO_RESPONSEREADER = new HashMap<Class<?>, ResponseReader>();
+	private static final Map<Class<?>, ResponseReader> TYPE_TO_RESPONSEREADER = new HashMap<Class<?>, ResponseReader>();
 
 	{
-		JPRIMITIVETYPE_TO_RESPONSEREADER.put(Boolean.class, ResponseReader.BOOLEAN);
-		JPRIMITIVETYPE_TO_RESPONSEREADER.put(Byte.class, ResponseReader.BYTE);
-		JPRIMITIVETYPE_TO_RESPONSEREADER.put(Character.class, ResponseReader.CHAR);
-		JPRIMITIVETYPE_TO_RESPONSEREADER.put(Double.class, ResponseReader.DOUBLE);
-		JPRIMITIVETYPE_TO_RESPONSEREADER.put(Float.class, ResponseReader.FLOAT);
-		JPRIMITIVETYPE_TO_RESPONSEREADER.put(Integer.class, ResponseReader.INT);
-		JPRIMITIVETYPE_TO_RESPONSEREADER.put(Long.class, ResponseReader.LONG);
-		JPRIMITIVETYPE_TO_RESPONSEREADER.put(Short.class, ResponseReader.SHORT);
-		JPRIMITIVETYPE_TO_RESPONSEREADER.put(Void.class, ResponseReader.VOID);
+		TYPE_TO_RESPONSEREADER.put(Boolean.class, ResponseReader.BOOLEAN);
+		TYPE_TO_RESPONSEREADER.put(Byte.class, ResponseReader.BYTE);
+		TYPE_TO_RESPONSEREADER.put(Character.class, ResponseReader.CHAR);
+		TYPE_TO_RESPONSEREADER.put(Double.class, ResponseReader.DOUBLE);
+		TYPE_TO_RESPONSEREADER.put(Float.class, ResponseReader.FLOAT);
+		TYPE_TO_RESPONSEREADER.put(Integer.class, ResponseReader.INT);
+		TYPE_TO_RESPONSEREADER.put(Long.class, ResponseReader.LONG);
+		TYPE_TO_RESPONSEREADER.put(Short.class, ResponseReader.SHORT);
+		TYPE_TO_RESPONSEREADER.put(Void.class, ResponseReader.VOID);
+		TYPE_TO_RESPONSEREADER.put(String.class, ResponseReader.STRING);
 	}
 
 	public CustomProxyCreator(JClassType serviceIntf) {
@@ -107,15 +109,8 @@ public class CustomProxyCreator extends ProxyCreator {
 	}
 
 	private ResponseReader getResponseReaderFor(Class<?> returnType) {
-		if ( returnType.isPrimitive() ) {
-			return JPRIMITIVETYPE_TO_RESPONSEREADER.get( returnType );
-		}
-
-		if ( returnType.equals(String.class) ) {
-			return ResponseReader.STRING;
-		}
-
-		return ResponseReader.OBJECT;
+		ResponseReader reader = TYPE_TO_RESPONSEREADER.get( returnType );
+		return reader != null ? reader : ResponseReader.OBJECT;
 	}
 
 	/**
