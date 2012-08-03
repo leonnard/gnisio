@@ -147,10 +147,10 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 	@Override
 	public void stopCleanupTimers() {
 		if (cleanupTask != null)
-			cleanupTask.cancel(false);
+			cleanupTask.cancel(true);
 
 		if (heartbeatTimeoutTask != null)
-			heartbeatTimeoutTask.cancel(false);
+			heartbeatTimeoutTask.cancel(true);
 	}
 
 	@Override
@@ -170,7 +170,7 @@ public abstract class AbstractClient implements ClientConnection, Subscriber<Obj
 	@Override
 	public void stopHeartbeatTask() {
 		if (heartbeatTask != null)
-			heartbeatTask.cancel(false);
+			heartbeatTask.cancel(true);
 	}
 
 	@Override

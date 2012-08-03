@@ -387,10 +387,15 @@ public abstract class AbstractRemoteService implements SerializationPolicyProvid
 	 * @param methodName
 	 * @param node
 	 */
-	@SuppressWarnings("unchecked")
 	protected void addSubscriber(String... nodes) {
+		this.addSubscriber(getClientConnection(), nodes);
+	}
+	
+	@Override
+	@SuppressWarnings("unchecked")
+	public void addSubscriber(ClientConnection client, String... nodes) {
 		if (nodes != null && nodes.length > 0) {
-			dispatcher.subscribe(Topics.anyOf(nodes), Object.class, (Subscriber<Object[]>) getClientConnection());
+			dispatcher.subscribe(Topics.anyOf(nodes), Object.class, (Subscriber<Object[]>) client);
 		}
 	}
 

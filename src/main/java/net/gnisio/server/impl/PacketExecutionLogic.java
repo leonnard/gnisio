@@ -1,6 +1,7 @@
 package net.gnisio.server.impl;
 
 import java.nio.charset.Charset;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -170,51 +171,57 @@ public class PacketExecutionLogic {
 	 * 
 	 * @param req
 	 * @param resp
-	 * @param context 
+	 * @param context
 	 * @return
 	 */
-	private String prepareSession(HttpRequest req, HttpResponse resp, ConnectionContext context) {
+	private void prepareSession(HttpRequest req, HttpResponse resp, ConnectionContext context) {
+		// Prepare cookies
 		String cookieString = req.getHeader(HttpHeaders.Names.COOKIE);
 
-		// Try to find alive session in cookies
 		if (cookieString != null) {
 			Set<Cookie> cookies = cookDecoder.decode(cookieString);
-			Iterator<Cookie> it = cookies.iterator();
 			context.setCookies(cookies);
+		} else
+			context.setCookies(new HashSet<Cookie>());
+
+		// Prepare session
+		String ua = req.getHeader(HttpHeaders.Names.USER_AGENT);
+		String upgrade = req.getHeader(HttpHeaders.Names.UPGRADE);
+
+		if ((ua != null && !ua.isEmpty()) || upgrade != null) {
+			Iterator<Cookie> it = context.getCookies().iterator();
 
 			while (it.hasNext()) {
 				Cookie cook = it.next();
-				String userAgent = req.getHeader(HttpHeaders.Names.USER_AGENT);
 
 				if (cook.getName().equals("__sessId")
-						&& ((userAgent != null && servContext.getSessionsStorage().getSession(cook.getValue(),
-								userAgent) != null) || (req.getHeader(HttpHeaders.Names.UPGRADE) != null && servContext
+						&& ((ua != null && servContext.getSessionsStorage().getSession(cook.getValue(), ua) != null) || (upgrade != null && servContext
 								.getSessionsStorage().getSession(cook.getValue()) != null))) {
+
 					servContext.getSessionsStorage().resetClearTimer(cook.getValue());
 					context.setSessionId(cook.getValue());
-					
-					return cook.getValue();
+					return;
 				}
 			}
+
+			// Create session
+			Session sess = servContext.getSessionsStorage().createSession(req.getHeader(HttpHeaders.Names.USER_AGENT));
+
+			// Create cookie
+			Cookie sessCookie = new DefaultCookie("__sessId", sess.getId());
+			sessCookie.setPath("/");
+			sessCookie.setDomain(servContext.getHost());
+			sessCookie.setMaxAge(-1);
+
+			// Set cookie in response
+			CookieEncoder cookEncoder = new CookieEncoder(false);
+			cookEncoder.addCookie(sessCookie);
+			resp.setHeader(HttpHeaders.Names.SET_COOKIE, cookEncoder.encode());
+
+			// Set session in the context
+			context.setSessionId(sess.getId());
+			LOG.debug("NEW session generated: "+sess.getId()+"; Cookies: "+context.getCookies());
 		}
-
-		// Create session
-		Session sess = servContext.getSessionsStorage().createSession(req.getHeader(HttpHeaders.Names.USER_AGENT));
-
-		// Create cookie
-		Cookie sessCookie = new DefaultCookie("__sessId", sess.getId());
-		sessCookie.setPath("/");
-		sessCookie.setDomain(servContext.getHost());
-		sessCookie.setMaxAge(-1);
-
-		// Set cookie in response
-		CookieEncoder cookEncoder = new CookieEncoder(false);
-		cookEncoder.addCookie(sessCookie);
-		resp.setHeader(HttpHeaders.Names.SET_COOKIE, cookEncoder.encode());
-
-		// Set session in the context
-		context.setSessionId(sess.getId());
-		return sess.getId();
 	}
 
 	/**

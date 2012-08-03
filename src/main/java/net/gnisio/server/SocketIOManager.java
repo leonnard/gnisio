@@ -166,7 +166,7 @@ public class SocketIOManager {
 	}
 	
 	public static ScheduledFuture<?> scheduleSessionTimeoutTask(Runnable runnable) {
-		return scheduledExecutorService.schedule(runnable, option.session_timeout , TimeUnit.SECONDS);
+		return scheduledExecutorService.schedule(runnable, option.session_timeout/10 , TimeUnit.SECONDS);
 	}
 
 	/**
