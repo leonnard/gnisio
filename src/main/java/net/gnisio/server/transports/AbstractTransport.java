@@ -19,7 +19,6 @@ public abstract class AbstractTransport implements Transport {
 	@Override
 	public <T extends ClientConnection> T getClientConnection(String clientId, Class<T> clazz, ServerContext servContext)
 			throws ClientConnectionNotExists, ClientConnectionMismatch {
-
 		ClientConnection client = servContext.getClientsStorage().getClient(clientId);
 
 		// If null - not reserved by handshake

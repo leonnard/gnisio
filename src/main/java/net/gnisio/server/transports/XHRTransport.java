@@ -30,7 +30,7 @@ public class XHRTransport extends AbstractTransport {
 	public void processRequest(HttpRequest req, HttpResponse resp, String clientId, Packet packet,
 			ServerContext servContext) throws ClientConnectionNotExists,
 			ClientConnectionMismatch {
-
+	
 		// Process request-response
 		if (req.getMethod() == HttpMethod.POST)
 			processPostRequest(clientId, req, resp, packet, servContext);
@@ -84,7 +84,7 @@ public class XHRTransport extends AbstractTransport {
 			List<SocketIOFrame> resultFrames = new ArrayList<SocketIOFrame>();
 
 			for (SocketIOFrame frame : receivedFrames) {
-				SocketIOFrame rf = processSocketIOFrame(frame, null, null);
+				SocketIOFrame rf = processSocketIOFrame(frame, client, servContext);
 
 				if (rf != null)
 					resultFrames.add(rf);
@@ -117,7 +117,7 @@ public class XHRTransport extends AbstractTransport {
 	 * Override this method for getting some extends of XHRClient
 	 */
 	protected XHRClient doGetClientConnection(String clientId, ServerContext servContext) throws ClientConnectionNotExists, ClientConnectionMismatch {
-		return getClientConnection(clientId, XHRClient.class, null);
+		return getClientConnection(clientId, XHRClient.class, servContext);
 	}
 
 	/**
@@ -135,7 +135,6 @@ public class XHRTransport extends AbstractTransport {
 	private void processGetRequest(String clientId, HttpRequest req, HttpResponse resp,
 			Packet packet, ServerContext servContext) throws ClientConnectionNotExists,
 			ClientConnectionMismatch {
-		LOG.debug("Process XHR server-push (GET)");
 
 		try {
 			// Try to get client connection
